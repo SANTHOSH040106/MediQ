@@ -3,14 +3,14 @@ import { Heart, Brain, Bone, Eye, Baby, Activity, Stethoscope, Pill } from "luci
 import { Link } from "react-router-dom";
 
 const categories = [
-  { name: "Cardiology", icon: Heart, color: "text-red-500" },
-  { name: "Neurology", icon: Brain, color: "text-purple-500" },
-  { name: "Orthopedics", icon: Bone, color: "text-blue-500" },
-  { name: "Ophthalmology", icon: Eye, color: "text-cyan-500" },
-  { name: "Pediatrics", icon: Baby, color: "text-pink-500" },
+  { name: "Cardiology", icon: Heart, color: "text-accent" },
+  { name: "Neurology", icon: Brain, color: "text-primary" },
+  { name: "Orthopedics", icon: Bone, color: "text-primary" },
+  { name: "Ophthalmology", icon: Eye, color: "text-primary" },
+  { name: "Pediatrics", icon: Baby, color: "text-accent" },
   { name: "General Medicine", icon: Stethoscope, color: "text-primary" },
-  { name: "Dermatology", icon: Activity, color: "text-orange-500" },
-  { name: "Pharmacy", icon: Pill, color: "text-green-500" },
+  { name: "Dermatology", icon: Activity, color: "text-warning" },
+  { name: "Pharmacy", icon: Pill, color: "text-success" },
 ];
 
 export const CategoryCards = () => {
