@@ -14,7 +14,185 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      doctors: {
+        Row: {
+          about: string | null
+          availability_status: string | null
+          consultation_fee: number
+          created_at: string
+          education: string | null
+          experience: number
+          hospital_id: string
+          id: string
+          languages: string[] | null
+          name: string
+          photo: string | null
+          qualification: string
+          rating: number | null
+          specialization: string
+          total_reviews: number | null
+          updated_at: string
+        }
+        Insert: {
+          about?: string | null
+          availability_status?: string | null
+          consultation_fee: number
+          created_at?: string
+          education?: string | null
+          experience: number
+          hospital_id: string
+          id?: string
+          languages?: string[] | null
+          name: string
+          photo?: string | null
+          qualification: string
+          rating?: number | null
+          specialization: string
+          total_reviews?: number | null
+          updated_at?: string
+        }
+        Update: {
+          about?: string | null
+          availability_status?: string | null
+          consultation_fee?: number
+          created_at?: string
+          education?: string | null
+          experience?: number
+          hospital_id?: string
+          id?: string
+          languages?: string[] | null
+          name?: string
+          photo?: string | null
+          qualification?: string
+          rating?: number | null
+          specialization?: string
+          total_reviews?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctors_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hospitals: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          description: string | null
+          email: string | null
+          facilities: string[] | null
+          id: string
+          images: string[] | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          phone: string
+          pincode: string
+          rating: number | null
+          specialties: string[] | null
+          state: string
+          status: string | null
+          total_reviews: number | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          facilities?: string[] | null
+          id?: string
+          images?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          phone: string
+          pincode: string
+          rating?: number | null
+          specialties?: string[] | null
+          state: string
+          status?: string | null
+          total_reviews?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          facilities?: string[] | null
+          id?: string
+          images?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          phone?: string
+          pincode?: string
+          rating?: number | null
+          specialties?: string[] | null
+          state?: string
+          status?: string | null
+          total_reviews?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reviews_ratings: {
+        Row: {
+          created_at: string
+          doctor_id: string | null
+          hospital_id: string | null
+          id: string
+          rating: number
+          review: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id?: string | null
+          hospital_id?: string | null
+          id?: string
+          rating: number
+          review?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string | null
+          hospital_id?: string | null
+          id?: string
+          rating?: number
+          review?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_ratings_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_ratings_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
