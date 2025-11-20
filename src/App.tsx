@@ -12,6 +12,8 @@ import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import HospitalDetail from "./pages/HospitalDetail";
 import DoctorDetail from "./pages/DoctorDetail";
+import Booking from "./pages/Booking";
+import AppointmentDetail from "./pages/AppointmentDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +31,9 @@ const App = () => (
           <Route path="/search" element={<Search />} />
           <Route path="/hospital/:id" element={<HospitalDetail />} />
           <Route path="/doctor/:id" element={<DoctorDetail />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/booking" element={<Booking />} />
+          <Route path="/appointment/:id" element={<AppointmentDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/edit" element={<ProfileEdit />} />
           <Route path="/settings" element={<Settings />} />
