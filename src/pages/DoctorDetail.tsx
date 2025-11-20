@@ -242,7 +242,11 @@ const DoctorDetail = () => {
                   </p>
                 </div>
 
-                <Button className="w-full" size="lg">
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={() => window.location.href = `/booking?doctor=${id}`}
+                >
                   <Calendar className="h-5 w-5 mr-2" />
                   Book Appointment
                 </Button>

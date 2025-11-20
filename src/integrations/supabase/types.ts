@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          appointment_type: string
+          created_at: string | null
+          doctor_id: string
+          hospital_id: string
+          id: string
+          queue_position: number | null
+          special_instructions: string | null
+          status: string
+          token_number: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          appointment_type?: string
+          created_at?: string | null
+          doctor_id: string
+          hospital_id: string
+          id?: string
+          queue_position?: number | null
+          special_instructions?: string | null
+          status?: string
+          token_number?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          appointment_type?: string
+          created_at?: string | null
+          doctor_id?: string
+          hospital_id?: string
+          id?: string
+          queue_position?: number | null
+          special_instructions?: string | null
+          status?: string
+          token_number?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           about: string | null
@@ -189,6 +252,50 @@ export type Database = {
             columns: ["hospital_id"]
             isOneToOne: false
             referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_slots: {
+        Row: {
+          created_at: string | null
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id: string
+          is_available: boolean | null
+          max_appointments: number
+          slot_duration: number
+          start_time: string
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          max_appointments?: number
+          slot_duration?: number
+          start_time: string
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          max_appointments?: number
+          slot_duration?: number
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_slots_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]
