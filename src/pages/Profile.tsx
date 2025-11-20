@@ -12,6 +12,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     loadUserData();
@@ -25,6 +26,19 @@ const Profile = () => {
         return;
       }
       setUser(user);
+
+      // Fetch profile data from profiles table
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error loading profile:", error);
+      } else if (profileData) {
+        setProfile(profileData);
+      }
     } catch (error) {
       console.error("Error loading user data:", error);
     } finally {
@@ -46,8 +60,16 @@ const Profile = () => {
     return null;
   }
 
-  const fullName = user.user_metadata?.full_name || "User";
+  const fullName = profile?.full_name || user.user_metadata?.full_name || "User";
   const email = user.email || "";
+  const phone = profile?.phone || "Not set";
+  const address = profile?.address || "Not set";
+  const dateOfBirth = profile?.date_of_birth || "Not set";
+  const bloodGroup = profile?.blood_group || "Not set";
+  const allergies = profile?.allergies || "Not set";
+  const medicalHistory = profile?.medical_history || "Not set";
+  const insuranceProvider = profile?.insurance_provider || "Not set";
+  const insuranceNumber = profile?.insurance_number || "Not set";
 
   return (
     <MainLayout>
@@ -99,14 +121,14 @@ const Profile = () => {
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="font-medium">Not set</p>
+                  <p className="font-medium">{phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Address</p>
-                  <p className="font-medium">Not set</p>
+                  <p className="font-medium">{address}</p>
                 </div>
               </div>
             </div>
@@ -130,14 +152,19 @@ const Profile = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Medical History</p>
-              <p className="text-muted-foreground">No medical history added yet</p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Blood Group</p>
+              <p className="font-medium">{bloodGroup}</p>
             </div>
             <Separator />
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Allergies</p>
-              <p className="text-muted-foreground">No allergies recorded</p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Allergies</p>
+              <p className="font-medium">{allergies}</p>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Medical History</p>
+              <p className="font-medium">{medicalHistory}</p>
             </div>
           </CardContent>
         </Card>
@@ -151,15 +178,14 @@ const Profile = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Provider</p>
-                <p className="font-medium">Not set</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Policy Number</p>
-                <p className="font-medium">Not set</p>
-              </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Insurance Provider</p>
+              <p className="font-medium">{insuranceProvider}</p>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Policy Number</p>
+              <p className="font-medium">{insuranceNumber}</p>
             </div>
           </CardContent>
         </Card>

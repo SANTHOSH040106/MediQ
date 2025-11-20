@@ -33,10 +33,14 @@ const ProfileEdit = () => {
   const [address, setAddress] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [bloodGroup, setBloodGroup] = useState("");
   const [medicalHistory, setMedicalHistory] = useState("");
   const [allergies, setAllergies] = useState("");
+  const [currentMedications, setCurrentMedications] = useState("");
   const [insuranceProvider, setInsuranceProvider] = useState("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
+  const [insuranceExpiry, setInsuranceExpiry] = useState("");
 
   useEffect(() => {
     loadUserData();
@@ -49,7 +53,30 @@ const ProfileEdit = () => {
       if (user) {
         setEmail(user.email || "");
         setFullName(user.user_metadata.full_name || "");
-        // Load additional profile data from profiles table when it's created
+
+        // Load profile data from profiles table
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (error && error.code !== "PGRST116") {
+          console.error("Error loading profile:", error);
+        } else if (profile) {
+          setPhone(profile.phone || "");
+          setAddress(profile.address || "");
+          setEmergencyContact(profile.emergency_contact || "");
+          setEmergencyPhone(profile.emergency_phone || "");
+          setDateOfBirth(profile.date_of_birth || "");
+          setBloodGroup(profile.blood_group || "");
+          setMedicalHistory(profile.medical_history || "");
+          setAllergies(profile.allergies || "");
+          setCurrentMedications(profile.current_medications || "");
+          setInsuranceProvider(profile.insurance_provider || "");
+          setInsuranceNumber(profile.insurance_number || "");
+          setInsuranceExpiry(profile.insurance_expiry || "");
+        }
       }
     } catch (error) {
       console.error("Error loading user data:", error);
@@ -69,16 +96,39 @@ const ProfileEdit = () => {
         emergencyPhone,
       });
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
       // Update user metadata
-      const { error } = await supabase.auth.updateUser({
+      const { error: authError } = await supabase.auth.updateUser({
         data: {
           full_name: validated.fullName,
         },
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
 
-      // TODO: Save additional profile data to profiles table when it's created
+      // Update profile data in profiles table
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          full_name: validated.fullName,
+          phone: validated.phone,
+          address: validated.address || null,
+          emergency_contact: validated.emergencyContact || null,
+          emergency_phone: validated.emergencyPhone || null,
+          date_of_birth: dateOfBirth || null,
+          blood_group: bloodGroup || null,
+          medical_history: medicalHistory || null,
+          allergies: allergies || null,
+          current_medications: currentMedications || null,
+          insurance_provider: insuranceProvider || null,
+          insurance_number: insuranceNumber || null,
+          insurance_expiry: insuranceExpiry || null,
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
 
       toast({
         title: "Success",
@@ -238,6 +288,36 @@ const ProfileEdit = () => {
             <CardDescription>Your medical history and conditions</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bloodGroup">Blood Group</Label>
+                <Input
+                  id="bloodGroup"
+                  value={bloodGroup}
+                  onChange={(e) => setBloodGroup(e.target.value)}
+                  placeholder="O+, A-, etc."
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="allergies">Allergies</Label>
+              <Textarea
+                id="allergies"
+                value={allergies}
+                onChange={(e) => setAllergies(e.target.value)}
+                placeholder="List any known allergies (medications, food, etc.)"
+                rows={3}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="medicalHistory">Medical History</Label>
               <Textarea
@@ -249,13 +329,13 @@ const ProfileEdit = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="allergies">Allergies</Label>
+              <Label htmlFor="currentMedications">Current Medications</Label>
               <Textarea
-                id="allergies"
-                value={allergies}
-                onChange={(e) => setAllergies(e.target.value)}
-                placeholder="List any known allergies (medications, food, etc.)"
-                rows={3}
+                id="currentMedications"
+                value={currentMedications}
+                onChange={(e) => setCurrentMedications(e.target.value)}
+                placeholder="List current medications..."
+                rows={2}
               />
             </div>
           </CardContent>
@@ -285,6 +365,15 @@ const ProfileEdit = () => {
                   value={insuranceNumber}
                   onChange={(e) => setInsuranceNumber(e.target.value)}
                   placeholder="ABC123456789"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="insuranceExpiry">Policy Expiry Date</Label>
+                <Input
+                  id="insuranceExpiry"
+                  type="date"
+                  value={insuranceExpiry}
+                  onChange={(e) => setInsuranceExpiry(e.target.value)}
                 />
               </div>
             </div>

@@ -208,6 +208,66 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          address: string | null
+          allergies: string | null
+          avatar_url: string | null
+          blood_group: string | null
+          created_at: string
+          current_medications: string | null
+          date_of_birth: string | null
+          emergency_contact: string | null
+          emergency_phone: string | null
+          full_name: string | null
+          id: string
+          insurance_expiry: string | null
+          insurance_number: string | null
+          insurance_provider: string | null
+          medical_history: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          allergies?: string | null
+          avatar_url?: string | null
+          blood_group?: string | null
+          created_at?: string
+          current_medications?: string | null
+          date_of_birth?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          full_name?: string | null
+          id: string
+          insurance_expiry?: string | null
+          insurance_number?: string | null
+          insurance_provider?: string | null
+          medical_history?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          allergies?: string | null
+          avatar_url?: string | null
+          blood_group?: string | null
+          created_at?: string
+          current_medications?: string | null
+          date_of_birth?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          full_name?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          insurance_number?: string | null
+          insurance_provider?: string | null
+          medical_history?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reviews_ratings: {
         Row: {
           created_at: string
