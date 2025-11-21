@@ -365,7 +365,72 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_available_slots: {
+        Args: { p_date: string; p_doctor_id: string }
+        Returns: {
+          is_booked: boolean
+          slot_time: string
+        }[]
+      }
+      get_doctor_statistics: {
+        Args: { p_doctor_id: string }
+        Returns: {
+          average_rating: number
+          cancelled_appointments: number
+          completed_appointments: number
+          total_appointments: number
+        }[]
+      }
+      get_next_token_number: {
+        Args: { p_date: string; p_doctor_id: string }
+        Returns: number
+      }
+      search_doctors: {
+        Args: {
+          hospital_id_filter?: string
+          limit_count?: number
+          offset_count?: number
+          search_text?: string
+          specialization_filter?: string
+        }
+        Returns: {
+          availability_status: string
+          consultation_fee: number
+          experience: number
+          hospital_id: string
+          id: string
+          name: string
+          photo: string
+          qualification: string
+          rating: number
+          specialization: string
+          total_reviews: number
+        }[]
+      }
+      search_hospitals: {
+        Args: {
+          city_filter?: string
+          limit_count?: number
+          offset_count?: number
+          search_text?: string
+          specialty_filter?: string
+        }
+        Returns: {
+          address: string
+          city: string
+          facilities: string[]
+          id: string
+          images: string[]
+          latitude: number
+          longitude: number
+          name: string
+          phone: string
+          rating: number
+          specialties: string[]
+          state: string
+          total_reviews: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
