@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Clock, Calendar as CalendarIcon, DollarSign } from "lucide-react";
+import { useDoctorById } from "@/hooks/useDoctors";
+import { useAvailableSlots } from "@/hooks/useTimeSlots";
+import { useCreateAppointment } from "@/hooks/useAppointments";
 
 const Booking = () => {
   const [searchParams] = useSearchParams();
@@ -19,64 +21,30 @@ const Booking = () => {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
-  const [doctor, setDoctor] = useState<any>(null);
-  const [hospital, setHospital] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState("");
   const [appointmentType, setAppointmentType] = useState("consultation");
   const [specialInstructions, setSpecialInstructions] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [booking, setBooking] = useState(false);
 
-  const timeSlots = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"
-  ];
+  const { data: doctorData, isLoading: doctorLoading } = useDoctorById(doctorId || undefined);
+  const { data: availableSlots = [], isLoading: slotsLoading } = useAvailableSlots(
+    doctorId || undefined,
+    selectedDate?.toISOString().split('T')[0]
+  );
+  const createAppointment = useCreateAppointment();
+
+  const doctor = doctorData;
+  const hospital = doctorData?.hospitals;
+  const loading = doctorLoading;
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
-      return;
     }
-
-    if (doctorId && user) {
-      fetchDoctorDetails();
-    }
-  }, [doctorId, user, authLoading]);
-
-  const fetchDoctorDetails = async () => {
-    try {
-      const { data: doctorData, error: doctorError } = await supabase
-        .from("doctors")
-        .select("*")
-        .eq("id", doctorId)
-        .single();
-
-      if (doctorError) throw doctorError;
-      setDoctor(doctorData);
-
-      const { data: hospitalData, error: hospitalError } = await supabase
-        .from("hospitals")
-        .select("*")
-        .eq("id", doctorData.hospital_id)
-        .single();
-
-      if (hospitalError) throw hospitalError;
-      setHospital(hospitalData);
-    } catch (error) {
-      console.error("Error fetching details:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load doctor details",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [user, authLoading, navigate]);
 
   const handleBooking = async () => {
-    if (!user) {
+    if (!user || !doctor || !hospital) {
       navigate("/auth");
       return;
     }
@@ -90,39 +58,22 @@ const Booking = () => {
       return;
     }
 
-    setBooking(true);
-    try {
-      const { error } = await supabase.from("appointments").insert({
-        user_id: user.id,
-        doctor_id: doctorId,
+    createAppointment.mutate(
+      {
+        doctor_id: doctorId!,
         hospital_id: hospital.id,
         appointment_date: selectedDate.toISOString().split('T')[0],
         appointment_time: selectedTime,
         appointment_type: appointmentType,
         special_instructions: specialInstructions,
-        status: "scheduled",
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Appointment booked successfully",
-      });
-      navigate("/appointments");
-    } catch (error) {
-      console.error("Error booking appointment:", error);
-      toast({
-        title: "Booking Failed",
-        description: "Failed to book appointment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setBooking(false);
-    }
+      },
+      {
+        onSuccess: () => navigate("/appointments"),
+      }
+    );
   };
 
-  if (loading || authLoading) {
+  if (loading || authLoading || !user) {
     return (
       <MainLayout>
         <div className="container py-6">
@@ -199,18 +150,27 @@ const Booking = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-4 gap-2">
-              {timeSlots.map((time) => (
-                <Button
-                  key={time}
-                  variant={selectedTime === time ? "default" : "outline"}
-                  className="w-full"
-                  onClick={() => setSelectedTime(time)}
-                >
-                  {time}
-                </Button>
-              ))}
-            </div>
+            {slotsLoading ? (
+              <div className="text-center py-4">Loading available slots...</div>
+            ) : availableSlots.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                {selectedDate ? "No slots available for selected date" : "Please select a date first"}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {availableSlots.map((slot) => (
+                  <Button
+                    key={slot.slot_time}
+                    variant={selectedTime === slot.slot_time ? "default" : "outline"}
+                    className="w-full"
+                    onClick={() => setSelectedTime(slot.slot_time)}
+                    disabled={slot.is_booked}
+                  >
+                    {slot.slot_time}
+                  </Button>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -264,9 +224,9 @@ const Booking = () => {
           <Button
             className="flex-1"
             onClick={handleBooking}
-            disabled={booking || !selectedDate || !selectedTime}
+            disabled={createAppointment.isPending || !selectedDate || !selectedTime}
           >
-            {booking ? "Booking..." : "Confirm Booking"}
+            {createAppointment.isPending ? "Booking..." : "Confirm Booking"}
           </Button>
         </div>
       </div>

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -9,41 +8,18 @@ import { Separator } from "@/components/ui/separator";
 import { DoctorCard } from "@/components/search/DoctorCard";
 import { RatingStars } from "@/components/search/RatingStars";
 import { MapPin, Phone, Mail, Clock, Star, ArrowLeft } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useHospitalById } from "@/hooks/useHospitals";
+import { useDoctorsByHospital } from "@/hooks/useDoctors";
+import { useReviewsByHospital } from "@/hooks/useReviews";
 
 const HospitalDetail = () => {
   const { id } = useParams();
-  const [hospital, setHospital] = useState<any>(null);
-  const [doctors, setDoctors] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  const { data: hospital, isLoading: hospitalLoading } = useHospitalById(id);
+  const { data: doctors = [], isLoading: doctorsLoading } = useDoctorsByHospital(id);
+  const { data: reviews = [], isLoading: reviewsLoading } = useReviewsByHospital(id);
 
-  useEffect(() => {
-    if (id) {
-      fetchHospitalData();
-    }
-  }, [id]);
-
-  const fetchHospitalData = async () => {
-    setLoading(true);
-
-    const [hospitalResult, doctorsResult, reviewsResult] = await Promise.all([
-      supabase.from("hospitals").select("*").eq("id", id).single(),
-      supabase.from("doctors").select("*").eq("hospital_id", id),
-      supabase
-        .from("reviews_ratings")
-        .select("*")
-        .eq("hospital_id", id)
-        .order("created_at", { ascending: false })
-        .limit(5),
-    ]);
-
-    if (hospitalResult.data) setHospital(hospitalResult.data);
-    if (doctorsResult.data) setDoctors(doctorsResult.data);
-    if (reviewsResult.data) setReviews(reviewsResult.data);
-
-    setLoading(false);
-  };
+  const loading = hospitalLoading || doctorsLoading || reviewsLoading;
 
   if (loading) {
     return (
@@ -159,7 +135,7 @@ const HospitalDetail = () => {
                       consultationFee={doctor.consultation_fee}
                       rating={doctor.rating}
                       totalReviews={doctor.total_reviews}
-                      availabilityStatus={doctor.availability_status}
+                      availabilityStatus={doctor.availability_status as "available" | "busy" | "offline"}
                     />
                   ))
                 )}

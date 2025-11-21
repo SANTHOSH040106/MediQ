@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { SearchBar } from "@/components/home/SearchBar";
 import { SearchFilters } from "@/components/search/SearchFilters";
@@ -7,16 +7,14 @@ import { DoctorCard } from "@/components/search/DoctorCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
+import { useHospitals } from "@/hooks/useHospitals";
+import { useDoctors } from "@/hooks/useDoctors";
 
 const Search = () => {
   const [searchParams] = useSearchParams();
   const specialtyParam = searchParams.get("specialty");
   
-  const [hospitals, setHospitals] = useState<any[]>([]);
-  const [doctors, setDoctors] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(
     specialtyParam ? [specialtyParam] : []
   );
@@ -24,43 +22,18 @@ const Search = () => {
   const [sortBy, setSortBy] = useState("rating");
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedSpecialties, selectedCities, sortBy, searchQuery]);
+  const { data: hospitals = [], isLoading: hospitalsLoading } = useHospitals({
+    searchText: searchQuery,
+    city: selectedCities[0],
+    specialty: selectedSpecialties[0],
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    
-    let hospitalsQuery = supabase.from("hospitals").select("*");
-    let doctorsQuery = supabase.from("doctors").select("*, hospitals(name)");
+  const { data: doctors = [], isLoading: doctorsLoading } = useDoctors({
+    searchText: searchQuery,
+    specialization: selectedSpecialties[0],
+  });
 
-    // Apply filters
-    if (selectedSpecialties.length > 0) {
-      hospitalsQuery = hospitalsQuery.overlaps("specialties", selectedSpecialties);
-      doctorsQuery = doctorsQuery.in("specialization", selectedSpecialties);
-    }
-
-    if (selectedCities.length > 0) {
-      hospitalsQuery = hospitalsQuery.in("city", selectedCities);
-    }
-
-    // Apply sorting
-    const orderColumn = sortBy === "rating" ? "rating" : "name";
-    const ascending = sortBy === "name";
-    
-    hospitalsQuery = hospitalsQuery.order(orderColumn, { ascending });
-    doctorsQuery = doctorsQuery.order(orderColumn, { ascending });
-
-    const [hospitalsResult, doctorsResult] = await Promise.all([
-      hospitalsQuery,
-      doctorsQuery,
-    ]);
-
-    if (hospitalsResult.data) setHospitals(hospitalsResult.data);
-    if (doctorsResult.data) setDoctors(doctorsResult.data);
-    
-    setLoading(false);
-  };
+  const loading = hospitalsLoading || doctorsLoading;
 
   const handleSpecialtyToggle = (specialty: string) => {
     setSelectedSpecialties((prev) =>
@@ -167,8 +140,7 @@ const Search = () => {
                   consultationFee={doctor.consultation_fee}
                   rating={doctor.rating}
                   totalReviews={doctor.total_reviews}
-                  availabilityStatus={doctor.availability_status}
-                  hospitalName={doctor.hospitals?.name}
+                  availabilityStatus={doctor.availability_status as "available" | "busy" | "offline"}
                 />
               ))
             )}
