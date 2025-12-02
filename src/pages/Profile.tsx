@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Mail, Phone, MapPin, Users, Heart, Shield, Settings, Edit, Loader2 } from "lucide-react";
+import { User, Mail, Phone, MapPin, Users, Heart, Shield, Settings, Edit, Loader2, Receipt } from "lucide-react";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -187,6 +187,24 @@ const Profile = () => {
               <p className="text-sm text-muted-foreground">Policy Number</p>
               <p className="font-medium">{insuranceNumber}</p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment History */}
+        <Card className="mb-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/payment-history")}>
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Receipt className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Payment History</h3>
+                <p className="text-sm text-muted-foreground">View transactions & download receipts</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm">
+              View All
+            </Button>
           </CardContent>
         </Card>
 

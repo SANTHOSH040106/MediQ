@@ -109,6 +109,7 @@ const Payment = () => {
                     appointment_time: bookingData.appointmentTime,
                     appointment_type: bookingData.appointmentType,
                     special_instructions: bookingData.specialInstructions,
+                    consultation_fee: bookingData.consultationFee,
                   },
                 },
               }

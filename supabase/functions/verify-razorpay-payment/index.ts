@@ -107,6 +107,33 @@ serve(async (req) => {
 
     console.log('Appointment created successfully:', appointment.id);
 
+    // Record payment in payments table using service role client
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { error: paymentError } = await serviceClient
+      .from('payments')
+      .insert({
+        user_id: user.id,
+        appointment_id: appointment.id,
+        amount: appointmentData.consultation_fee || 0,
+        currency: 'INR',
+        razorpay_order_id: razorpay_order_id,
+        razorpay_payment_id: razorpay_payment_id,
+        razorpay_signature: razorpay_signature,
+        status: 'completed',
+        payment_method: 'razorpay',
+      });
+
+    if (paymentError) {
+      console.error('Error recording payment:', paymentError);
+      // Don't throw - appointment is already created
+    } else {
+      console.log('Payment recorded successfully');
+    }
+
     // Send notification
     try {
       await supabaseClient.functions.invoke('send-notification', {
