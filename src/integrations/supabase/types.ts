@@ -477,6 +477,7 @@ export type Database = {
       time_slots: {
         Row: {
           created_at: string | null
+          Date: string
           day_of_week: number
           doctor_id: string
           end_time: string
@@ -484,10 +485,12 @@ export type Database = {
           is_available: boolean | null
           max_appointments: number
           slot_duration: number
+          slot_type: string
           start_time: string
         }
         Insert: {
           created_at?: string | null
+          Date: string
           day_of_week: number
           doctor_id: string
           end_time: string
@@ -495,10 +498,12 @@ export type Database = {
           is_available?: boolean | null
           max_appointments?: number
           slot_duration?: number
+          slot_type?: string
           start_time: string
         }
         Update: {
           created_at?: string | null
+          Date?: string
           day_of_week?: number
           doctor_id?: string
           end_time?: string
@@ -506,6 +511,7 @@ export type Database = {
           is_available?: boolean | null
           max_appointments?: number
           slot_duration?: number
+          slot_type?: string
           start_time?: string
         }
         Relationships: [

@@ -21,6 +21,7 @@ const signupSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
   fullName: z.string().min(2, "Name must be at least 2 characters"),
+  phone: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -41,6 +42,7 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
 
   // Forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -103,6 +105,7 @@ const Auth = () => {
         password: signupPassword,
         confirmPassword,
         fullName,
+        phone,
       });
 
       const redirectUrl = `${window.location.origin}/`;
@@ -114,6 +117,7 @@ const Auth = () => {
           emailRedirectTo: redirectUrl,
           data: {
             full_name: validated.fullName,
+            phone: validated.phone,
           },
         },
       });
@@ -145,6 +149,7 @@ const Auth = () => {
       setSignupPassword("");
       setConfirmPassword("");
       setFullName("");
+      setPhone("");
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -330,6 +335,17 @@ const Auth = () => {
                       placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone">Mobile Number</Label>
+                    <Input
+                      id="signup-phone"
+                      type="tel"
+                      placeholder="9876543210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       required
                     />
                   </div>
