@@ -520,7 +520,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_reviews: {
+        Row: {
+          created_at: string | null
+          doctor_id: string | null
+          hospital_id: string | null
+          id: string | null
+          rating: number | null
+          review: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          doctor_id?: string | null
+          hospital_id?: string | null
+          id?: string | null
+          rating?: number | null
+          review?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          doctor_id?: string | null
+          hospital_id?: string | null
+          id?: string | null
+          rating?: number | null
+          review?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_ratings_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_ratings_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_available_slots: {
