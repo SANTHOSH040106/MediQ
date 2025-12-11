@@ -163,17 +163,51 @@ serve(async (req) => {
       console.log('Payment recorded successfully');
     }
 
-    // Send notification
+    // Get user email and doctor/hospital details for notification
     try {
-      await serviceClient.functions.invoke('send-notification', {
-        body: {
-          userId: userId,
-          type: 'appointment_confirmation',
-          appointmentId: appointment.id,
-        },
-      });
+      // Get user email from auth
+      const { data: { user: authUser } } = await serviceClient.auth.admin.getUserById(userId);
+      const userEmail = authUser?.email;
+
+      // Get doctor and hospital names
+      const { data: doctor } = await serviceClient
+        .from('doctors')
+        .select('name, specialization')
+        .eq('id', appointmentData.doctor_id)
+        .single();
+
+      const { data: hospital } = await serviceClient
+        .from('hospitals')
+        .select('name')
+        .eq('id', appointmentData.hospital_id)
+        .single();
+
+      // Send confirmation email
+      if (userEmail) {
+        await serviceClient.functions.invoke('send-notification', {
+          body: {
+            user_id: userId,
+            appointment_id: appointment.id,
+            type: 'appointment_confirmation',
+            title: 'Appointment Confirmed!',
+            message: `Your appointment has been successfully booked for ${new Date(appointmentData.appointment_date).toLocaleDateString()} at ${appointmentData.appointment_time}.`,
+            email_data: {
+              recipient_email: userEmail,
+              appointment_details: {
+                doctor_name: doctor?.name || 'Doctor',
+                hospital_name: hospital?.name || 'Hospital',
+                date: appointmentData.appointment_date,
+                time: appointmentData.appointment_time,
+                token_number: tokenNumber,
+              },
+            },
+          },
+        });
+        console.log('Confirmation email sent to:', userEmail);
+      }
     } catch (notifError) {
       console.error('Notification error:', notifError);
+      // Don't throw - appointment is already created
     }
 
     return new Response(
