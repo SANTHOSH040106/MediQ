@@ -72,7 +72,9 @@ const Appointments = () => {
   const filterAppointments = (status: string) => {
     if (status === "all") return appointments;
     if (status === "upcoming") {
-      return appointments.filter((apt) => apt.status === "scheduled");
+      return appointments.filter((apt) => 
+        apt.status === "scheduled" || apt.status === "confirmed"
+      );
     }
     return appointments.filter((apt) => apt.status === status);
   };
