@@ -17,7 +17,9 @@ import {
   AlertCircle,
   Edit,
   Trash2,
+  Download,
 } from "lucide-react";
+import { generateAppointmentPDF } from "@/components/appointments/AppointmentReceiptPDF";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,6 +121,7 @@ const AppointmentDetail = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "scheduled":
+      case "confirmed":
         return "bg-blue-500";
       case "completed":
         return "bg-green-500";
@@ -126,6 +129,16 @@ const AppointmentDetail = () => {
         return "bg-red-500";
       default:
         return "bg-gray-500";
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (appointment && doctor && hospital) {
+      generateAppointmentPDF(appointment, doctor, hospital);
+      toast({
+        title: "Downloaded",
+        description: "Appointment confirmation saved as PDF",
+      });
     }
   };
 
@@ -288,7 +301,18 @@ const AppointmentDetail = () => {
         )}
 
         {/* Action Buttons */}
-        {appointment.status === "scheduled" && (
+        <div className="flex gap-4 mb-6">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={handleDownloadPDF}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download Receipt
+          </Button>
+        </div>
+
+        {(appointment.status === "scheduled" || appointment.status === "confirmed") && (
           <div className="flex gap-4">
             <Button
               variant="outline"
