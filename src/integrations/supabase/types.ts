@@ -477,7 +477,7 @@ export type Database = {
       time_slots: {
         Row: {
           created_at: string | null
-          Date: string
+          Date: string | null
           day_of_week: number
           doctor_id: string
           end_time: string
@@ -490,7 +490,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          Date: string
+          Date?: string | null
           day_of_week: number
           doctor_id: string
           end_time: string
@@ -503,7 +503,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          Date?: string
+          Date?: string | null
           day_of_week?: number
           doctor_id?: string
           end_time?: string
