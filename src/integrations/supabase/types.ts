@@ -84,6 +84,7 @@ export type Database = {
           consultation_fee: number
           created_at: string
           education: string | null
+          email: string | null
           experience: number
           hospital_id: string
           id: string
@@ -102,6 +103,7 @@ export type Database = {
           consultation_fee: number
           created_at?: string
           education?: string | null
+          email?: string | null
           experience: number
           hospital_id: string
           id?: string
@@ -120,6 +122,7 @@ export type Database = {
           consultation_fee?: number
           created_at?: string
           education?: string | null
+          email?: string | null
           experience?: number
           hospital_id?: string
           id?: string

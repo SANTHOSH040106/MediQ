@@ -169,20 +169,39 @@ serve(async (req) => {
       const { data: { user: authUser } } = await serviceClient.auth.admin.getUserById(userId);
       const userEmail = authUser?.email;
 
-      // Get doctor and hospital names
+      // Get user profile for patient name
+      const { data: profile } = await serviceClient
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .single();
+
+      const patientName = profile?.full_name || authUser?.email || 'Patient';
+
+      // Get doctor and hospital details
       const { data: doctor } = await serviceClient
         .from('doctors')
-        .select('name, specialization')
+        .select('name, specialization, email')
         .eq('id', appointmentData.doctor_id)
         .single();
 
       const { data: hospital } = await serviceClient
         .from('hospitals')
-        .select('name')
+        .select('name, email')
         .eq('id', appointmentData.hospital_id)
         .single();
 
-      // Send confirmation email
+      const appointmentDetails = {
+        doctor_name: doctor?.name || 'Doctor',
+        hospital_name: hospital?.name || 'Hospital',
+        patient_name: patientName,
+        date: appointmentData.appointment_date,
+        time: appointmentData.appointment_time,
+        appointment_type: appointmentData.appointment_type || 'Consultation',
+        token_number: tokenNumber,
+      };
+
+      // Send confirmation email to patient
       if (userEmail) {
         await serviceClient.functions.invoke('send-notification', {
           body: {
@@ -190,20 +209,32 @@ serve(async (req) => {
             appointment_id: appointment.id,
             type: 'appointment_confirmation',
             title: 'Appointment Confirmed!',
-            message: `Your appointment has been successfully booked for ${new Date(appointmentData.appointment_date).toLocaleDateString()} at ${appointmentData.appointment_time}.`,
+            message: `Your appointment with ${doctor?.name || 'Doctor'} has been successfully booked for ${new Date(appointmentData.appointment_date).toLocaleDateString()} at ${appointmentData.appointment_time}.`,
             email_data: {
               recipient_email: userEmail,
-              appointment_details: {
-                doctor_name: doctor?.name || 'Doctor',
-                hospital_name: hospital?.name || 'Hospital',
-                date: appointmentData.appointment_date,
-                time: appointmentData.appointment_time,
-                token_number: tokenNumber,
-              },
+              appointment_details: appointmentDetails,
             },
           },
         });
-        console.log('Confirmation email sent to:', userEmail);
+        console.log('Confirmation email sent to patient:', userEmail);
+      }
+
+      // Send notification email to doctor
+      if (doctor?.email) {
+        await serviceClient.functions.invoke('send-notification', {
+          body: {
+            user_id: userId,
+            appointment_id: appointment.id,
+            type: 'appointment_confirmation',
+            title: 'New Appointment Scheduled',
+            message: `A new appointment has been booked by ${patientName} for ${new Date(appointmentData.appointment_date).toLocaleDateString()} at ${appointmentData.appointment_time}.`,
+            email_data: {
+              recipient_email: doctor.email,
+              appointment_details: appointmentDetails,
+            },
+          },
+        });
+        console.log('Notification email sent to doctor:', doctor.email);
       }
     } catch (notifError) {
       console.error('Notification error:', notifError);

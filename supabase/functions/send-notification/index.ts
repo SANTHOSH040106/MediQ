@@ -190,10 +190,12 @@ function generateEmailTemplate(
     detailsHtml = `
       <div class="details">
         <h3 style="margin-top: 0; color: #111827;">Appointment Details</h3>
+        ${appointmentDetails.patient_name ? `<div class="detail-row"><span class="label">Patient:</span> <span class="value">${appointmentDetails.patient_name}</span></div>` : ""}
         ${appointmentDetails.doctor_name ? `<div class="detail-row"><span class="label">Doctor:</span> <span class="value">${appointmentDetails.doctor_name}</span></div>` : ""}
         ${appointmentDetails.hospital_name ? `<div class="detail-row"><span class="label">Hospital:</span> <span class="value">${appointmentDetails.hospital_name}</span></div>` : ""}
         ${appointmentDetails.date ? `<div class="detail-row"><span class="label">Date:</span> <span class="value">${new Date(appointmentDetails.date).toLocaleDateString()}</span></div>` : ""}
         ${appointmentDetails.time ? `<div class="detail-row"><span class="label">Time:</span> <span class="value">${appointmentDetails.time}</span></div>` : ""}
+        ${appointmentDetails.appointment_type ? `<div class="detail-row"><span class="label">Type:</span> <span class="value">${appointmentDetails.appointment_type}</span></div>` : ""}
         ${appointmentDetails.token_number ? `<div class="detail-row"><span class="label">Token Number:</span> <span class="value">#${appointmentDetails.token_number}</span></div>` : ""}
       </div>
     `;
