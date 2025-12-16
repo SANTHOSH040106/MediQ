@@ -435,6 +435,7 @@ export type Database = {
           doctor_id: string | null
           hospital_id: string | null
           id: string
+          is_public: boolean | null
           rating: number
           review: string | null
           updated_at: string
@@ -445,6 +446,7 @@ export type Database = {
           doctor_id?: string | null
           hospital_id?: string | null
           id?: string
+          is_public?: boolean | null
           rating: number
           review?: string | null
           updated_at?: string
@@ -455,6 +457,7 @@ export type Database = {
           doctor_id?: string | null
           hospital_id?: string | null
           id?: string
+          is_public?: boolean | null
           rating?: number
           review?: string | null
           updated_at?: string
@@ -592,6 +595,10 @@ export type Database = {
       get_next_token_number: {
         Args: { p_date: string; p_doctor_id: string }
         Returns: number
+      }
+      is_doctor_for_appointment: {
+        Args: { doctor_id: string }
+        Returns: boolean
       }
       search_doctors: {
         Args: {
