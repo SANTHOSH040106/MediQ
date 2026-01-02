@@ -18,6 +18,26 @@ export interface Doctor {
   languages?: string[] | null;
 }
 
+// Fields to select from doctors table - excludes email for security
+const DOCTOR_PUBLIC_FIELDS = `
+  id,
+  name,
+  specialization,
+  qualification,
+  experience,
+  consultation_fee,
+  rating,
+  total_reviews,
+  hospital_id,
+  photo,
+  availability_status,
+  about,
+  education,
+  languages,
+  created_at,
+  updated_at
+`;
+
 interface UseDoctorsOptions {
   searchText?: string;
   specialization?: string;
@@ -48,9 +68,10 @@ export const useDoctorById = (id: string | undefined) => {
     queryFn: async () => {
       if (!id) throw new Error("Doctor ID is required");
 
+      // Select specific fields, excluding email for security
       const { data, error } = await supabase
         .from("doctors")
-        .select("*, hospitals(*)")
+        .select(`${DOCTOR_PUBLIC_FIELDS}, hospitals(*)`)
         .eq("id", id)
         .single();
 
@@ -67,9 +88,10 @@ export const useDoctorsByHospital = (hospitalId: string | undefined) => {
     queryFn: async () => {
       if (!hospitalId) throw new Error("Hospital ID is required");
 
+      // Select specific fields, excluding email for security
       const { data, error } = await supabase
         .from("doctors")
-        .select("*")
+        .select(DOCTOR_PUBLIC_FIELDS)
         .eq("hospital_id", hospitalId)
         .neq("availability_status", "inactive");
 
