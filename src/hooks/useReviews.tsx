@@ -24,10 +24,10 @@ export const useReviewsByDoctor = (doctorId: string | undefined) => {
     queryFn: async () => {
       if (!doctorId) throw new Error("Doctor ID is required");
 
-      // Query reviews_ratings but only select non-sensitive fields
+      // Use public_reviews view which excludes user_id for privacy
       const { data, error } = await supabase
-        .from("reviews_ratings")
-        .select("id, doctor_id, hospital_id, rating, review, created_at")
+        .from("public_reviews")
+        .select("*")
         .eq("doctor_id", doctorId)
         .order("created_at", { ascending: false });
 
@@ -44,10 +44,10 @@ export const useReviewsByHospital = (hospitalId: string | undefined) => {
     queryFn: async () => {
       if (!hospitalId) throw new Error("Hospital ID is required");
 
-      // Query reviews_ratings but only select non-sensitive fields
+      // Use public_reviews view which excludes user_id for privacy
       const { data, error } = await supabase
-        .from("reviews_ratings")
-        .select("id, doctor_id, hospital_id, rating, review, created_at")
+        .from("public_reviews")
+        .select("*")
         .eq("hospital_id", hospitalId)
         .order("created_at", { ascending: false });
 
