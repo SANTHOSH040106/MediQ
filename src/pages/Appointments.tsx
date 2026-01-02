@@ -69,14 +69,34 @@ const Appointments = () => {
     }
   };
 
-  const filterAppointments = (status: string) => {
-    if (status === "all") return appointments;
-    if (status === "upcoming") {
-      return appointments.filter((apt) => 
-        apt.status === "scheduled" || apt.status === "confirmed"
-      );
+  const filterAppointments = (filter: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (filter === "upcoming") {
+      // Upcoming: scheduled/confirmed appointments with date >= today
+      return appointments.filter((apt) => {
+        const aptDate = new Date(apt.appointment_date);
+        aptDate.setHours(0, 0, 0, 0);
+        return (apt.status === "scheduled" || apt.status === "confirmed") && aptDate >= today;
+      });
     }
-    return appointments.filter((apt) => apt.status === status);
+    
+    if (filter === "completed") {
+      // Past: completed appointments OR scheduled/confirmed with date < today
+      return appointments.filter((apt) => {
+        const aptDate = new Date(apt.appointment_date);
+        aptDate.setHours(0, 0, 0, 0);
+        return apt.status === "completed" || 
+          ((apt.status === "scheduled" || apt.status === "confirmed") && aptDate < today);
+      });
+    }
+    
+    if (filter === "cancelled") {
+      return appointments.filter((apt) => apt.status === "cancelled");
+    }
+    
+    return appointments;
   };
 
   const AppointmentCard = ({ appointment }: { appointment: any }) => (
