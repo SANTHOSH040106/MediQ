@@ -12,7 +12,44 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify the user's JWT token
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication failed:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
     const { amount, currency = 'INR', receipt, notes } = await req.json();
+
+    // Validate amount
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid amount' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
     const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
@@ -21,13 +58,16 @@ serve(async (req) => {
       throw new Error('Razorpay credentials not configured');
     }
 
-    console.log('Creating Razorpay order for amount:', amount);
+    console.log('Creating Razorpay order for amount:', amount, 'user:', user.id);
 
     const orderData = {
       amount: Math.round(amount * 100), // Convert to paise
       currency,
       receipt,
-      notes: notes || {},
+      notes: {
+        ...notes,
+        user_id: user.id, // Include user ID in order metadata
+      },
     };
 
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
@@ -48,7 +88,7 @@ serve(async (req) => {
       throw new Error(order.error?.description || 'Failed to create order');
     }
 
-    console.log('Razorpay order created successfully:', order.id);
+    console.log('Razorpay order created successfully:', order.id, 'for user:', user.id);
 
     return new Response(
       JSON.stringify({ order }),
