@@ -29,13 +29,38 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("Missing authorization header");
+      console.error("Missing authorization header");
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
+
+    // Create client with user's auth token to validate it
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify the JWT token by getting the user
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("Invalid auth token:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired authentication token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("Authenticated user:", user.id);
+
+    // Use service role client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const {
       user_id,
@@ -45,6 +70,20 @@ const handler = async (req: Request): Promise<Response> => {
       message,
       email_data,
     }: NotificationRequest = await req.json();
+
+    // Security check: Ensure the authenticated user matches the user_id in the request
+    // OR the user is sending notification to themselves
+    // Service-to-service calls (from other edge functions) use service role key in Authorization header
+    // Regular users can only send notifications for themselves
+    const isServiceCall = authHeader.includes("service_role") || authHeader.startsWith("Bearer " + supabaseServiceKey);
+    
+    if (!isServiceCall && user.id !== user_id) {
+      console.error("User mismatch: authenticated user", user.id, "trying to send notification for", user_id);
+      return new Response(
+        JSON.stringify({ error: "You can only send notifications for your own account" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     console.log("Processing notification:", { user_id, type, title });
 
@@ -190,13 +229,13 @@ function generateEmailTemplate(
     detailsHtml = `
       <div class="details">
         <h3 style="margin-top: 0; color: #111827;">Appointment Details</h3>
-        ${appointmentDetails.patient_name ? `<div class="detail-row"><span class="label">Patient:</span> <span class="value">${appointmentDetails.patient_name}</span></div>` : ""}
-        ${appointmentDetails.doctor_name ? `<div class="detail-row"><span class="label">Doctor:</span> <span class="value">${appointmentDetails.doctor_name}</span></div>` : ""}
-        ${appointmentDetails.hospital_name ? `<div class="detail-row"><span class="label">Hospital:</span> <span class="value">${appointmentDetails.hospital_name}</span></div>` : ""}
-        ${appointmentDetails.date ? `<div class="detail-row"><span class="label">Date:</span> <span class="value">${new Date(appointmentDetails.date).toLocaleDateString()}</span></div>` : ""}
-        ${appointmentDetails.time ? `<div class="detail-row"><span class="label">Time:</span> <span class="value">${appointmentDetails.time}</span></div>` : ""}
-        ${appointmentDetails.appointment_type ? `<div class="detail-row"><span class="label">Type:</span> <span class="value">${appointmentDetails.appointment_type}</span></div>` : ""}
-        ${appointmentDetails.token_number ? `<div class="detail-row"><span class="label">Token Number:</span> <span class="value">#${appointmentDetails.token_number}</span></div>` : ""}
+        ${appointmentDetails.patient_name ? `<div class="detail-row"><span class="label">Patient:</span> <span class="value">${escapeHtml(appointmentDetails.patient_name)}</span></div>` : ""}
+        ${appointmentDetails.doctor_name ? `<div class="detail-row"><span class="label">Doctor:</span> <span class="value">${escapeHtml(appointmentDetails.doctor_name)}</span></div>` : ""}
+        ${appointmentDetails.hospital_name ? `<div class="detail-row"><span class="label">Hospital:</span> <span class="value">${escapeHtml(appointmentDetails.hospital_name)}</span></div>` : ""}
+        ${appointmentDetails.date ? `<div class="detail-row"><span class="label">Date:</span> <span class="value">${escapeHtml(new Date(appointmentDetails.date).toLocaleDateString())}</span></div>` : ""}
+        ${appointmentDetails.time ? `<div class="detail-row"><span class="label">Time:</span> <span class="value">${escapeHtml(String(appointmentDetails.time))}</span></div>` : ""}
+        ${appointmentDetails.appointment_type ? `<div class="detail-row"><span class="label">Type:</span> <span class="value">${escapeHtml(appointmentDetails.appointment_type)}</span></div>` : ""}
+        ${appointmentDetails.token_number ? `<div class="detail-row"><span class="label">Token Number:</span> <span class="value">#${escapeHtml(String(appointmentDetails.token_number))}</span></div>` : ""}
       </div>
     `;
   }
@@ -216,8 +255,8 @@ function generateEmailTemplate(
           <p style="margin: 10px 0 0 0; opacity: 0.9;">Healthcare Appointment System</p>
         </div>
         <div class="content">
-          <h2 style="color: #111827; margin-top: 0;">${type.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}</h2>
-          <p style="font-size: 16px; color: #374151;">${message}</p>
+          <h2 style="color: #111827; margin-top: 0;">${escapeHtml(type.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "))}</h2>
+          <p style="font-size: 16px; color: #374151;">${escapeHtml(message)}</p>
           ${detailsHtml}
           <div class="footer">
             <p>This is an automated message from MediQ. Please do not reply to this email.</p>
@@ -228,6 +267,18 @@ function generateEmailTemplate(
     </body>
     </html>
   `;
+}
+
+// Helper function to escape HTML and prevent XSS
+function escapeHtml(text: string): string {
+  const htmlEntities: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+  return text.replace(/[&<>"']/g, char => htmlEntities[char] || char);
 }
 
 serve(handler);

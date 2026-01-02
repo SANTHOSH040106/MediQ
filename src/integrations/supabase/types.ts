@@ -576,6 +576,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_update_appointment: {
+        Args: { p_doctor_id: string; p_user_id: string }
+        Returns: boolean
+      }
       get_available_slots: {
         Args: { p_date: string; p_doctor_id: string }
         Returns: {
