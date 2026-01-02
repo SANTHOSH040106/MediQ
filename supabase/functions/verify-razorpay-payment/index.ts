@@ -212,6 +212,7 @@ serve(async (req) => {
               recipient_email: userEmail,
               appointment_details: appointmentDetails,
             },
+            is_internal_call: true, // Flag for internal service-to-service calls
           },
         });
         console.log('Confirmation email sent to patient:', userEmail);
@@ -223,13 +224,14 @@ serve(async (req) => {
           body: {
             user_id: userId,
             appointment_id: appointment.id,
-            type: 'appointment_confirmation',
+            type: 'new_appointment',
             title: 'New Appointment Scheduled',
             message: `A new appointment has been booked by ${patientName} for ${new Date(appointmentData.appointment_date).toLocaleDateString()} at ${appointmentData.appointment_time}.`,
             email_data: {
               recipient_email: doctor.email,
               appointment_details: appointmentDetails,
             },
+            is_internal_call: true, // Flag for internal service-to-service calls
           },
         });
         console.log('Notification email sent to doctor:', doctor.email);

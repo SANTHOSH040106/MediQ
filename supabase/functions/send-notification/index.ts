@@ -13,7 +13,7 @@ const corsHeaders = {
 interface NotificationRequest {
   user_id: string;
   appointment_id?: string;
-  type: "appointment_reminder" | "appointment_confirmation" | "queue_update" | "appointment_cancelled" | "appointment_rescheduled";
+  type: "appointment_reminder" | "appointment_confirmation" | "queue_update" | "appointment_cancelled" | "appointment_rescheduled" | "new_appointment";
   title: string;
   message: string;
   email_data?: {
@@ -33,32 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("Missing authorization header");
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // Create client with user's auth token to validate it
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Verify the JWT token by getting the user
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
     
-    if (authError || !user) {
-      console.error("Invalid auth token:", authError?.message);
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired authentication token" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    console.log("Authenticated user:", user.id);
-
     // Use service role client for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -69,40 +44,75 @@ const handler = async (req: Request): Promise<Response> => {
       title,
       message,
       email_data,
-    }: NotificationRequest = await req.json();
+      is_internal_call, // Flag for internal service-to-service calls
+    }: NotificationRequest & { is_internal_call?: boolean } = await req.json();
 
-    // Security check: Ensure the authenticated user matches the user_id in the request
-    // OR the user is sending notification to themselves
-    // Service-to-service calls (from other edge functions) use service role key in Authorization header
-    // Regular users can only send notifications for themselves
-    const isServiceCall = authHeader.includes("service_role") || authHeader.startsWith("Bearer " + supabaseServiceKey);
+    // Check if this is an internal service call (from other edge functions)
+    // Internal calls include the is_internal_call flag and come from the service
+    const isServiceCall = is_internal_call === true;
     
-    if (!isServiceCall && user.id !== user_id) {
-      console.error("User mismatch: authenticated user", user.id, "trying to send notification for", user_id);
-      return new Response(
-        JSON.stringify({ error: "You can only send notifications for your own account" }),
-        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    if (!isServiceCall) {
+      // For external calls, require authentication
+      if (!authHeader) {
+        console.error("Missing authorization header");
+        return new Response(
+          JSON.stringify({ error: "Missing authorization header" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Create client with user's auth token to validate it
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      // Verify the JWT token by getting the user
+      const { data: { user }, error: authError } = await userClient.auth.getUser();
+      
+      if (authError || !user) {
+        console.error("Invalid auth token:", authError?.message);
+        return new Response(
+          JSON.stringify({ error: "Invalid or expired authentication token" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      console.log("Authenticated user:", user.id);
+
+      // Security check: Ensure the authenticated user matches the user_id in the request
+      if (user.id !== user_id) {
+        console.error("User mismatch: authenticated user", user.id, "trying to send notification for", user_id);
+        return new Response(
+          JSON.stringify({ error: "You can only send notifications for your own account" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    } else {
+      console.log("Internal service call - bypassing user authentication");
     }
 
-    console.log("Processing notification:", { user_id, type, title });
+    console.log("Processing notification:", { user_id, type, title, recipient: email_data?.recipient_email });
 
-    // Check user notification preferences
-    const { data: preferences } = await supabase
-      .from("notification_preferences")
-      .select("*")
-      .eq("user_id", user_id)
-      .single();
+    // Check user notification preferences (only for user notifications, not doctor notifications)
+    let preferences = null;
+    if (user_id) {
+      const { data } = await supabase
+        .from("notification_preferences")
+        .select("*")
+        .eq("user_id", user_id)
+        .single();
+      preferences = data;
 
-    // Create default preferences if none exist
-    if (!preferences) {
-      await supabase.from("notification_preferences").insert({
-        user_id,
-        email_enabled: true,
-        push_enabled: true,
-        appointment_reminders: true,
-        queue_updates: true,
-      });
+      // Create default preferences if none exist
+      if (!preferences) {
+        await supabase.from("notification_preferences").insert({
+          user_id,
+          email_enabled: true,
+          push_enabled: true,
+          appointment_reminders: true,
+          queue_updates: true,
+        });
+      }
     }
 
     const shouldSendEmail = preferences?.email_enabled ?? true;
