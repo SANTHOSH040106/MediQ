@@ -33,9 +33,39 @@ serve(async (req) => {
       throw new Error('Razorpay secret not configured');
     }
 
+    // SECURITY: Require valid authentication - no fallbacks
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Missing authorization header");
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate the JWT token
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("Invalid auth token:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = user.id;
+    console.log('Authenticated user:', userId);
     console.log('Verifying Razorpay payment:', razorpay_payment_id);
 
-    // Verify signature - this is the security mechanism
+    // Verify Razorpay signature - this is the cryptographic security mechanism
     const crypto = await import("https://deno.land/std@0.177.0/crypto/mod.ts");
     const text = `${razorpay_order_id}|${razorpay_payment_id}`;
     const encoder = new TextEncoder();
@@ -57,51 +87,19 @@ serve(async (req) => {
 
     if (expectedSignature !== razorpay_signature) {
       console.error('Payment signature verification failed');
-      throw new Error('Payment verification failed - invalid signature');
+      return new Response(
+        JSON.stringify({ error: 'Payment verification failed - invalid signature' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('Payment verified successfully');
 
     // Use service role client for database operations
     const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    // Get user_id from the auth header if available, otherwise from appointmentData
-    let userId: string | null = null;
-    
-    const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const anonClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data: { user } } = await anonClient.auth.getUser();
-      userId = user?.id || null;
-    }
-
-    // Fallback: Extract user_id from order notes by fetching the order
-    if (!userId) {
-      try {
-        const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
-        const orderResponse = await fetch(`https://api.razorpay.com/v1/orders/${razorpay_order_id}`, {
-          headers: {
-            'Authorization': 'Basic ' + btoa(`${razorpayKeyId}:${razorpayKeySecret}`),
-          },
-        });
-        const orderDetails = await orderResponse.json();
-        userId = orderDetails.notes?.user_id || null;
-        console.log('Got user_id from Razorpay order notes:', userId);
-      } catch (e) {
-        console.error('Failed to fetch order details:', e);
-      }
-    }
-
-    if (!userId) {
-      throw new Error('Could not determine user ID');
-    }
 
     // Get next token number
     const { data: tokenData, error: tokenError } = await serviceClient
@@ -117,11 +115,11 @@ serve(async (req) => {
 
     const tokenNumber = tokenData || 1;
 
-    // Create appointment
+    // Create appointment - using the verified user ID from JWT, not from request body
     const { data: appointment, error: appointmentError } = await serviceClient
       .from('appointments')
       .insert({
-        user_id: userId,
+        user_id: userId, // Using verified user ID from JWT
         doctor_id: appointmentData.doctor_id,
         hospital_id: appointmentData.hospital_id,
         appointment_date: appointmentData.appointment_date,
@@ -145,7 +143,7 @@ serve(async (req) => {
     const { error: paymentError } = await serviceClient
       .from('payments')
       .insert({
-        user_id: userId,
+        user_id: userId, // Using verified user ID from JWT
         appointment_id: appointment.id,
         amount: appointmentData.consultation_fee || 0,
         currency: 'INR',
