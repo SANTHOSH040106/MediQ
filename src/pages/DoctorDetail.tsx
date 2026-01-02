@@ -32,12 +32,20 @@ const DoctorDetail = () => {
     }
   }, [id]);
 
+  // Fields to select - excludes email for security
+  const DOCTOR_PUBLIC_FIELDS = `
+    id, name, specialization, qualification, experience,
+    consultation_fee, rating, total_reviews, hospital_id,
+    photo, availability_status, about, education, languages,
+    created_at, updated_at
+  `;
+
   const fetchDoctorData = async () => {
     setLoading(true);
 
     const doctorResult = await supabase
       .from("doctors")
-      .select("*, hospitals(*)")
+      .select(`${DOCTOR_PUBLIC_FIELDS}, hospitals(*)`)
       .eq("id", id)
       .single();
 
