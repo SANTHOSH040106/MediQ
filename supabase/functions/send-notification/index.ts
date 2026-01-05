@@ -121,14 +121,26 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email notification
     if (shouldSendEmail && email_data?.recipient_email) {
       try {
+        // Use custom domain if configured, otherwise use Resend's sandbox
+        // NOTE: onboarding@resend.dev only delivers to the account owner's verified email
+        // For production, add RESEND_FROM_EMAIL secret with your verified domain email
+        const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "MediQ <onboarding@resend.dev>";
+        
+        console.log("Sending email from:", fromEmail, "to:", email_data.recipient_email);
+        
         const emailResponse = await resend.emails.send({
-          from: "MediQ <onboarding@resend.dev>",
+          from: fromEmail,
           to: [email_data.recipient_email],
           subject: title,
           html: generateEmailTemplate(type, message, email_data.appointment_details),
         });
 
-        console.log("Email sent successfully:", emailResponse);
+        console.log("Resend API response:", JSON.stringify(emailResponse));
+
+        // Check if there's an error in the response
+        if ('error' in emailResponse && emailResponse.error) {
+          throw new Error(JSON.stringify(emailResponse.error));
+        }
 
         // Log notification in database
         await supabase.from("notifications").insert({
