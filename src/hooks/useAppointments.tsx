@@ -26,7 +26,7 @@ export const useAppointments = (userId: string | undefined) => {
 
       const { data, error } = await supabase
         .from("appointments")
-        .select("*, doctors(*), hospitals(*)")
+        .select("*, doctors:doctors_public(*), hospitals(*)")
         .eq("user_id", userId)
         .order("appointment_date", { ascending: false });
 
@@ -45,7 +45,7 @@ export const useAppointmentById = (id: string | undefined) => {
 
       const { data, error } = await supabase
         .from("appointments")
-        .select("*, doctors(*), hospitals(*)")
+        .select("*, doctors:doctors_public(*), hospitals(*)")
         .eq("id", id)
         .single();
 
@@ -85,7 +85,7 @@ export const useCreateAppointment = () => {
           token_number: tokenData || 1,
           status: "scheduled",
         })
-        .select("*, doctors(*), hospitals(*)")
+        .select("*, doctors:doctors_public(*), hospitals(*)")
         .single();
 
       if (error) throw error;
@@ -143,7 +143,7 @@ export const useCancelAppointment = () => {
       // Get appointment details first
       const { data: appointment } = await supabase
         .from("appointments")
-        .select("*, doctors(*), hospitals(*)")
+        .select("*, doctors:doctors_public(*), hospitals(*)")
         .eq("id", appointmentId)
         .single();
 
