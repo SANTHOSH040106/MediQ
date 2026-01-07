@@ -7,7 +7,7 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-internal-secret",
 };
 
 interface NotificationRequest {
@@ -44,12 +44,13 @@ const handler = async (req: Request): Promise<Response> => {
       title,
       message,
       email_data,
-      is_internal_call, // Flag for internal service-to-service calls
-    }: NotificationRequest & { is_internal_call?: boolean } = await req.json();
+    }: NotificationRequest = await req.json();
 
-    // Check if this is an internal service call (from other edge functions)
-    // Internal calls include the is_internal_call flag and come from the service
-    const isServiceCall = is_internal_call === true;
+    // Check if this is an internal service call using cryptographic secret
+    // Internal calls must pass the secret in X-Internal-Secret header
+    const internalSecret = Deno.env.get("INTERNAL_SERVICE_SECRET");
+    const providedSecret = req.headers.get("X-Internal-Secret");
+    const isServiceCall = internalSecret && providedSecret && providedSecret === internalSecret;
     
     if (!isServiceCall) {
       // For external calls, require authentication
@@ -88,7 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
     } else {
-      console.log("Internal service call - bypassing user authentication");
+      console.log("Authenticated internal service call - bypassing user authentication");
     }
 
     console.log("Processing notification:", { user_id, type, title, recipient: email_data?.recipient_email });
