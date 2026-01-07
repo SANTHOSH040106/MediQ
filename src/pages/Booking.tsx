@@ -161,18 +161,62 @@ const Booking = () => {
                 {selectedDate ? "No slots available for selected date" : "Please select a date first"}
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {availableSlots.map((slot) => (
-                  <Button
-                    key={slot.slot_time}
-                    variant={selectedTime === slot.slot_time ? "default" : "outline"}
-                    className="w-full"
-                    onClick={() => setSelectedTime(slot.slot_time)}
-                    disabled={slot.is_booked}
-                  >
-                    {slot.slot_time}
-                  </Button>
-                ))}
+              <div className="space-y-4">
+                {/* AM Slots */}
+                {availableSlots.filter(slot => {
+                  const hour = parseInt(slot.slot_time.split(':')[0]);
+                  return hour < 12;
+                }).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Morning (AM)</h4>
+                    <div className="grid grid-cols-4 gap-2">
+                      {availableSlots
+                        .filter(slot => {
+                          const hour = parseInt(slot.slot_time.split(':')[0]);
+                          return hour < 12;
+                        })
+                        .map((slot) => (
+                          <Button
+                            key={slot.slot_time}
+                            variant={selectedTime === slot.slot_time ? "default" : "outline"}
+                            className="w-full"
+                            onClick={() => setSelectedTime(slot.slot_time)}
+                            disabled={slot.is_booked}
+                          >
+                            {slot.slot_time}
+                          </Button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* PM Slots */}
+                {availableSlots.filter(slot => {
+                  const hour = parseInt(slot.slot_time.split(':')[0]);
+                  return hour >= 12;
+                }).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Afternoon/Evening (PM)</h4>
+                    <div className="grid grid-cols-4 gap-2">
+                      {availableSlots
+                        .filter(slot => {
+                          const hour = parseInt(slot.slot_time.split(':')[0]);
+                          return hour >= 12;
+                        })
+                        .map((slot) => (
+                          <Button
+                            key={slot.slot_time}
+                            variant={selectedTime === slot.slot_time ? "default" : "outline"}
+                            className="w-full"
+                            onClick={() => setSelectedTime(slot.slot_time)}
+                            disabled={slot.is_booked}
+                          >
+                            {slot.slot_time}
+                          </Button>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
