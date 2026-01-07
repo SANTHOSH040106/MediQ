@@ -20,22 +20,10 @@ export interface Doctor {
 
 // Fields to select from doctors table - excludes email for security
 const DOCTOR_PUBLIC_FIELDS = `
-  id,
-  name,
-  specialization,
-  qualification,
-  experience,
-  consultation_fee,
-  rating,
-  total_reviews,
-  hospital_id,
-  photo,
-  availability_status,
-  about,
-  education,
-  languages,
-  created_at,
-  updated_at
+  id, name, specialization, qualification, experience,
+  consultation_fee, rating, total_reviews, hospital_id,
+  photo, availability_status, about, education, languages,
+  created_at, updated_at
 `;
 
 interface UseDoctorsOptions {
@@ -68,26 +56,17 @@ export const useDoctorById = (id: string | undefined) => {
     queryFn: async () => {
       if (!id) throw new Error("Doctor ID is required");
 
-      // Use doctors_public view which excludes email for security
+      // Query doctors table directly with explicit field selection (excludes email for security)
       const { data: doctorData, error: doctorError } = await supabase
-        .from("doctors_public")
-        .select("*")
+        .from("doctors")
+        .select(`${DOCTOR_PUBLIC_FIELDS}, hospitals(*)`)
         .eq("id", id)
         .maybeSingle();
 
       if (doctorError) throw doctorError;
       if (!doctorData) return null;
 
-      // Fetch hospital data separately
-      const { data: hospitalData, error: hospitalError } = await supabase
-        .from("hospitals")
-        .select("*")
-        .eq("id", doctorData.hospital_id)
-        .maybeSingle();
-
-      if (hospitalError) throw hospitalError;
-
-      return { ...doctorData, hospitals: hospitalData };
+      return { ...doctorData, hospitals: doctorData.hospitals } as Doctor & { hospitals: any };
     },
     enabled: !!id,
   });
@@ -99,15 +78,15 @@ export const useDoctorsByHospital = (hospitalId: string | undefined) => {
     queryFn: async () => {
       if (!hospitalId) throw new Error("Hospital ID is required");
 
-      // Use doctors_public view which excludes email for security
+      // Query doctors table directly with explicit field selection (excludes email for security)
       const { data, error } = await supabase
-        .from("doctors_public")
-        .select("*")
+        .from("doctors")
+        .select(DOCTOR_PUBLIC_FIELDS)
         .eq("hospital_id", hospitalId)
         .neq("availability_status", "inactive");
 
       if (error) throw error;
-      return data;
+      return data as Doctor[];
     },
     enabled: !!hospitalId,
   });

@@ -46,8 +46,7 @@ const DoctorDetail = () => {
     setReviews([]);
 
     try {
-      // Prefer the base table (has FK so we can embed hospitals). If anything blocks it,
-      // fall back to the doctors_public view.
+      // Query doctors table directly with explicit field selection (excludes email for security)
       const { data: doctorData, error: doctorError } = await supabase
         .from("doctors")
         .select(`${DOCTOR_PUBLIC_FIELDS}, hospitals(*)`)
@@ -56,35 +55,15 @@ const DoctorDetail = () => {
 
       if (doctorError) throw doctorError;
 
-      if (doctorData) {
-        setDoctor(doctorData);
-        setHospital(doctorData.hospitals ?? null);
-      } else {
-        const { data: publicDoctor, error: publicDoctorError } = await supabase
-          .from("doctors_public")
-          .select(DOCTOR_PUBLIC_FIELDS)
-          .eq("id", id)
-          .maybeSingle();
-
-        if (publicDoctorError) throw publicDoctorError;
-
-        if (!publicDoctor) {
-          setDoctor(null);
-          setHospital(null);
-          setLoading(false);
-          return;
-        }
-
-        setDoctor(publicDoctor);
-
-        const { data: hospitalData } = await supabase
-          .from("hospitals")
-          .select("*")
-          .eq("id", publicDoctor.hospital_id)
-          .maybeSingle();
-
-        setHospital(hospitalData ?? null);
+      if (!doctorData) {
+        setDoctor(null);
+        setHospital(null);
+        setLoading(false);
+        return;
       }
+
+      setDoctor(doctorData);
+      setHospital(doctorData.hospitals ?? null);
 
       const reviewsResult = await supabase
         .from("reviews_ratings")
