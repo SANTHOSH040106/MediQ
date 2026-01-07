@@ -203,9 +203,16 @@ serve(async (req) => {
         token_number: tokenNumber,
       };
 
+      // Get internal service secret for authenticated internal calls
+      const internalSecret = Deno.env.get('INTERNAL_SERVICE_SECRET');
+      if (!internalSecret) {
+        console.warn('INTERNAL_SERVICE_SECRET not configured - notifications may fail');
+      }
+
       // Send confirmation email to patient
       if (userEmail) {
         await serviceClient.functions.invoke('send-notification', {
+          headers: internalSecret ? { 'X-Internal-Secret': internalSecret } : {},
           body: {
             user_id: userId,
             appointment_id: appointment.id,
@@ -216,7 +223,6 @@ serve(async (req) => {
               recipient_email: userEmail,
               appointment_details: appointmentDetails,
             },
-            is_internal_call: true, // Flag for internal service-to-service calls
           },
         });
         console.log('Confirmation email sent to patient:', userEmail);
@@ -225,6 +231,7 @@ serve(async (req) => {
       // Send notification email to doctor
       if (doctor?.email) {
         await serviceClient.functions.invoke('send-notification', {
+          headers: internalSecret ? { 'X-Internal-Secret': internalSecret } : {},
           body: {
             user_id: userId,
             appointment_id: appointment.id,
@@ -235,7 +242,6 @@ serve(async (req) => {
               recipient_email: doctor.email,
               appointment_details: appointmentDetails,
             },
-            is_internal_call: true, // Flag for internal service-to-service calls
           },
         });
         console.log('Notification email sent to doctor:', doctor.email);
