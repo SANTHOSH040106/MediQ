@@ -69,6 +69,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "public_doctors"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_hospital_id_fkey"
             columns: ["hospital_id"]
             isOneToOne: false
@@ -472,6 +479,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reviews_ratings_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "public_doctors"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reviews_ratings_hospital_id_fkey"
             columns: ["hospital_id"]
             isOneToOne: false
@@ -528,10 +542,82 @@ export type Database = {
             referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "time_slots_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "public_doctors"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
+      public_doctors: {
+        Row: {
+          about: string | null
+          availability_status: string | null
+          consultation_fee: number | null
+          created_at: string | null
+          education: string | null
+          experience: number | null
+          hospital_id: string | null
+          id: string | null
+          languages: string[] | null
+          name: string | null
+          photo: string | null
+          qualification: string | null
+          rating: number | null
+          specialization: string | null
+          total_reviews: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          about?: string | null
+          availability_status?: string | null
+          consultation_fee?: number | null
+          created_at?: string | null
+          education?: string | null
+          experience?: number | null
+          hospital_id?: string | null
+          id?: string | null
+          languages?: string[] | null
+          name?: string | null
+          photo?: string | null
+          qualification?: string | null
+          rating?: number | null
+          specialization?: string | null
+          total_reviews?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          about?: string | null
+          availability_status?: string | null
+          consultation_fee?: number | null
+          created_at?: string | null
+          education?: string | null
+          experience?: number | null
+          hospital_id?: string | null
+          id?: string | null
+          languages?: string[] | null
+          name?: string | null
+          photo?: string | null
+          qualification?: string | null
+          rating?: number | null
+          specialization?: string | null
+          total_reviews?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctors_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_reviews: {
         Row: {
           created_at: string | null
@@ -563,6 +649,13 @@ export type Database = {
             columns: ["doctor_id"]
             isOneToOne: false
             referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_ratings_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "public_doctors"
             referencedColumns: ["id"]
           },
           {
