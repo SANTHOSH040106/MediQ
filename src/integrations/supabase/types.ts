@@ -95,6 +95,7 @@ export type Database = {
           experience: number
           hospital_id: string
           id: string
+          is_public: boolean | null
           languages: string[] | null
           name: string
           photo: string | null
@@ -114,6 +115,7 @@ export type Database = {
           experience: number
           hospital_id: string
           id?: string
+          is_public?: boolean | null
           languages?: string[] | null
           name: string
           photo?: string | null
@@ -133,6 +135,7 @@ export type Database = {
           experience?: number
           hospital_id?: string
           id?: string
+          is_public?: boolean | null
           languages?: string[] | null
           name?: string
           photo?: string | null
@@ -673,6 +676,7 @@ export type Database = {
         Args: { p_doctor_id: string; p_user_id: string }
         Returns: boolean
       }
+      escape_like: { Args: { "": string }; Returns: string }
       get_auth_uid: { Args: never; Returns: string }
       get_available_slots: {
         Args: { p_date: string; p_doctor_id: string }
