@@ -15,7 +15,7 @@ serve(async (req) => {
     // Authenticate the request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No authorization header provided');
+      console.error('Authentication required - no authorization header');
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -41,14 +41,14 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error('Authentication failed:', authError?.message || 'Auth session missing!');
+      console.error('Authentication failed - invalid or expired token');
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Authenticated user:', user.id);
+    console.log('User authenticated successfully');
 
     const { amount, currency = 'INR', receipt, notes } = await req.json();
 
@@ -67,7 +67,7 @@ serve(async (req) => {
       throw new Error('Razorpay credentials not configured');
     }
 
-    console.log('Creating Razorpay order for amount:', amount, 'user:', user.id);
+    console.log('Creating Razorpay order for authenticated user');
 
     const orderData = {
       amount: Math.round(amount * 100), // Convert to paise
@@ -93,18 +93,18 @@ serve(async (req) => {
     const order = await response.json();
 
     if (!response.ok) {
-      console.error('Razorpay order creation failed:', order);
+      console.error('Razorpay order creation failed');
       throw new Error(order.error?.description || 'Failed to create order');
     }
 
-    console.log('Razorpay order created successfully:', order.id, 'for user:', user.id);
+    console.log('Razorpay order created successfully');
 
     return new Response(
       JSON.stringify({ order }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in create-razorpay-order:', error);
+    console.error('Error in create-razorpay-order function');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
       JSON.stringify({ error: errorMessage }),

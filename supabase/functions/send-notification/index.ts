@@ -71,28 +71,28 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: { user }, error: authError } = await userClient.auth.getUser();
       
       if (authError || !user) {
-        console.error("Invalid auth token:", authError?.message);
+        console.error("Invalid auth token");
         return new Response(
           JSON.stringify({ error: "Invalid or expired authentication token" }),
           { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
 
-      console.log("Authenticated user:", user.id);
+      console.log("User authenticated successfully");
 
       // Security check: Ensure the authenticated user matches the user_id in the request
       if (user.id !== user_id) {
-        console.error("User mismatch: authenticated user", user.id, "trying to send notification for", user_id);
+        console.error("User mismatch - access denied");
         return new Response(
           JSON.stringify({ error: "You can only send notifications for your own account" }),
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
     } else {
-      console.log("Authenticated internal service call - bypassing user authentication");
+      console.log("Authenticated internal service call");
     }
 
-    console.log("Processing notification:", { user_id, type, title, recipient: email_data?.recipient_email });
+    console.log("Processing notification request");
 
     // Check user notification preferences (only for user notifications, not doctor notifications)
     let preferences = null;
@@ -127,7 +127,7 @@ const handler = async (req: Request): Promise<Response> => {
         // For production, add RESEND_FROM_EMAIL secret with your verified domain email
         const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "MediQ <onboarding@resend.dev>";
         
-        console.log("Sending email from:", fromEmail, "to:", email_data.recipient_email);
+        console.log("Sending email notification");
         
         const emailResponse = await resend.emails.send({
           from: fromEmail,
@@ -136,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
           html: generateEmailTemplate(type, message, email_data.appointment_details),
         });
 
-        console.log("Resend API response:", JSON.stringify(emailResponse));
+        console.log("Email sent successfully");
 
         // Check if there's an error in the response
         if ('error' in emailResponse && emailResponse.error) {
@@ -155,9 +155,9 @@ const handler = async (req: Request): Promise<Response> => {
           sent_at: new Date().toISOString(),
         });
 
-        results.push({ channel: "email", status: "sent", response: emailResponse });
+        results.push({ channel: "email", status: "sent" });
       } catch (error: any) {
-        console.error("Email send failed:", error);
+        console.error("Email send failed");
 
         await supabase.from("notifications").insert({
           user_id,
@@ -167,10 +167,10 @@ const handler = async (req: Request): Promise<Response> => {
           status: "failed",
           title,
           message,
-          error_message: error.message,
+          error_message: "Email delivery failed",
         });
 
-        results.push({ channel: "email", status: "failed", error: error.message });
+        results.push({ channel: "email", status: "failed" });
       }
     }
 
@@ -200,8 +200,8 @@ const handler = async (req: Request): Promise<Response> => {
 
             results.push({ channel: "push", status: "sent" });
           } catch (error: any) {
-            console.error("Push notification failed:", error);
-            results.push({ channel: "push", status: "failed", error: error.message });
+            console.error("Push notification failed");
+            results.push({ channel: "push", status: "failed" });
           }
         }
       }
@@ -215,9 +215,9 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send-notification function:", error);
+    console.error("Error in send-notification function");
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Notification processing failed" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

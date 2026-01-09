@@ -61,7 +61,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error("Invalid auth token:", authError?.message || 'Auth session missing!');
+      console.error("Invalid or expired authentication token");
       return new Response(
         JSON.stringify({ error: 'Invalid or expired authentication token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -69,8 +69,7 @@ serve(async (req) => {
     }
 
     const userId = user.id;
-    console.log('Authenticated user:', userId);
-    console.log('Verifying Razorpay payment:', razorpay_payment_id);
+    console.log('User authenticated successfully, verifying payment');
 
     // Verify Razorpay signature - this is the cryptographic security mechanism
     const crypto = await import("https://deno.land/std@0.177.0/crypto/mod.ts");
@@ -113,7 +112,7 @@ serve(async (req) => {
       });
 
     if (tokenError) {
-      console.error('Error getting token number:', tokenError);
+      console.error('Error getting token number');
       throw tokenError;
     }
 
@@ -137,11 +136,11 @@ serve(async (req) => {
       .single();
 
     if (appointmentError) {
-      console.error('Error creating appointment:', appointmentError);
+      console.error('Error creating appointment');
       throw appointmentError;
     }
 
-    console.log('Appointment created successfully:', appointment.id);
+    console.log('Appointment created successfully');
 
     // Record payment in payments table
     const { error: paymentError } = await serviceClient
@@ -159,7 +158,7 @@ serve(async (req) => {
       });
 
     if (paymentError) {
-      console.error('Error recording payment:', paymentError);
+      console.error('Error recording payment');
       // Don't throw - appointment is already created
     } else {
       console.log('Payment recorded successfully');
@@ -178,7 +177,7 @@ serve(async (req) => {
         .eq('id', userId)
         .single();
 
-      const patientName = profile?.full_name || authUser?.email || 'Patient';
+      const patientName = profile?.full_name || 'Patient';
 
       // Get doctor and hospital details
       const { data: doctor } = await serviceClient
@@ -206,7 +205,7 @@ serve(async (req) => {
       // Get internal service secret for authenticated internal calls
       const internalSecret = Deno.env.get('INTERNAL_SERVICE_SECRET');
       if (!internalSecret) {
-        console.warn('INTERNAL_SERVICE_SECRET not configured - notifications may fail');
+        console.warn('Internal service secret not configured - notifications may fail');
       }
 
       // Send confirmation email to patient
@@ -225,7 +224,7 @@ serve(async (req) => {
             },
           },
         });
-        console.log('Confirmation email sent to patient:', userEmail);
+        console.log('Confirmation email sent to patient');
       }
 
       // Send notification email to doctor
@@ -237,17 +236,17 @@ serve(async (req) => {
             appointment_id: appointment.id,
             type: 'new_appointment',
             title: 'New Appointment Scheduled',
-            message: `A new appointment has been booked by ${patientName} for ${new Date(appointmentData.appointment_date).toLocaleDateString()} at ${appointmentData.appointment_time}.`,
+            message: `A new appointment has been booked for ${new Date(appointmentData.appointment_date).toLocaleDateString()} at ${appointmentData.appointment_time}.`,
             email_data: {
               recipient_email: doctor.email,
               appointment_details: appointmentDetails,
             },
           },
         });
-        console.log('Notification email sent to doctor:', doctor.email);
+        console.log('Notification email sent to doctor');
       }
     } catch (notifError) {
-      console.error('Notification error:', notifError);
+      console.error('Notification error occurred');
       // Don't throw - appointment is already created
     }
 
@@ -260,7 +259,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in verify-razorpay-payment:', error);
+    console.error('Error in verify-razorpay-payment function');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
       JSON.stringify({ error: errorMessage }),
