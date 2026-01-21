@@ -56,10 +56,11 @@ export const useDoctorById = (id: string | undefined) => {
     queryFn: async () => {
       if (!id) throw new Error("Doctor ID is required");
 
-      // Query public_doctors view (excludes email for security)
+      // Query doctors table with explicit field selection (excludes email for security).
+      // RLS + REVOKE on (email) ensures public can read only safe doctor fields.
       const { data: doctorData, error: doctorError } = await supabase
-        .from("public_doctors")
-        .select("*")
+        .from("doctors")
+        .select(DOCTOR_PUBLIC_FIELDS)
         .eq("id", id)
         .maybeSingle();
 
@@ -89,10 +90,10 @@ export const useDoctorsByHospital = (hospitalId: string | undefined) => {
     queryFn: async () => {
       if (!hospitalId) throw new Error("Hospital ID is required");
 
-      // Query public_doctors view (excludes email for security)
+      // Query doctors table with explicit field selection (excludes email for security)
       const { data, error } = await supabase
-        .from("public_doctors")
-        .select("*")
+        .from("doctors")
+        .select(DOCTOR_PUBLIC_FIELDS)
         .eq("hospital_id", hospitalId)
         .neq("availability_status", "inactive");
 

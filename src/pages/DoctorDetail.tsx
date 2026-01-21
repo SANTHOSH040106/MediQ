@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { RatingStars } from "@/components/search/RatingStars";
+import { useDoctorById } from "@/hooks/useDoctors";
+import { useReviewsByDoctor } from "@/hooks/useReviews";
 import {
   MapPin,
   GraduationCap,
@@ -17,71 +19,24 @@ import {
   ArrowLeft,
   Languages,
 } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 const DoctorDetail = () => {
   const { id } = useParams();
-  const [doctor, setDoctor] = useState<any>(null);
-  const [hospital, setHospital] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: doctorData, isLoading: doctorLoading } = useDoctorById(id);
+  const { data: reviews = [], isLoading: reviewsLoading } = useReviewsByDoctor(id);
 
-  useEffect(() => {
-    if (id) {
-      fetchDoctorData();
-    }
-  }, [id]);
+  const doctor = doctorData;
+  const hospital = doctorData?.hospitals;
+  const loading = doctorLoading || reviewsLoading;
 
-  // Fields to select - excludes email for security
-  const DOCTOR_PUBLIC_FIELDS = `
-    id, name, specialization, qualification, experience,
-    consultation_fee, rating, total_reviews, hospital_id,
-    photo, availability_status, about, education, languages,
-    created_at, updated_at
-  `;
-
-  const fetchDoctorData = async () => {
-    setLoading(true);
-    setReviews([]);
-
-    try {
-      // Query doctors table directly with explicit field selection (excludes email for security)
-      const { data: doctorData, error: doctorError } = await supabase
-        .from("doctors")
-        .select(`${DOCTOR_PUBLIC_FIELDS}, hospitals(*)`)
-        .eq("id", id)
-        .maybeSingle();
-
-      if (doctorError) throw doctorError;
-
-      if (!doctorData) {
-        setDoctor(null);
-        setHospital(null);
-        setLoading(false);
-        return;
-      }
-
-      setDoctor(doctorData);
-      setHospital(doctorData.hospitals ?? null);
-
-      const reviewsResult = await supabase
-        .from("reviews_ratings")
-        .select("*")
-        .eq("doctor_id", id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (reviewsResult.data) setReviews(reviewsResult.data);
-    } catch (e: any) {
-      console.error("Failed to load doctor", e);
-      toast.error(e?.message ? `Failed to load doctor: ${e.message}` : "Failed to load doctor");
-      setDoctor(null);
-      setHospital(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const statusConfig = useMemo(
+    () => ({
+      available: { label: "Available", color: "bg-success" },
+      busy: { label: "Busy", color: "bg-warning" },
+      offline: { label: "Offline", color: "bg-muted" },
+    }),
+    []
+  );
 
   if (loading) {
     return (
@@ -107,13 +62,9 @@ const DoctorDetail = () => {
     );
   }
 
-  const statusConfig = {
-    available: { label: "Available", color: "bg-success" },
-    busy: { label: "Busy", color: "bg-warning" },
-    offline: { label: "Offline", color: "bg-muted" },
-  };
-
-  const status = statusConfig[doctor.availability_status as keyof typeof statusConfig];
+  const status =
+    statusConfig[(doctor.availability_status ?? "offline") as keyof typeof statusConfig] ??
+    statusConfig.offline;
 
   return (
     <MainLayout>
