@@ -59,14 +59,25 @@ export const useDoctorById = (id: string | undefined) => {
       // Query public_doctors view (excludes email for security)
       const { data: doctorData, error: doctorError } = await supabase
         .from("public_doctors")
-        .select("*, hospitals(*)")
+        .select("*")
         .eq("id", id)
         .maybeSingle();
 
       if (doctorError) throw doctorError;
       if (!doctorData) return null;
 
-      return { ...doctorData, hospitals: doctorData.hospitals } as Doctor & { hospitals: any };
+      // Fetch hospital separately since views don't support joins
+      let hospital = null;
+      if (doctorData.hospital_id) {
+        const { data: hospitalData } = await supabase
+          .from("hospitals")
+          .select("*")
+          .eq("id", doctorData.hospital_id)
+          .maybeSingle();
+        hospital = hospitalData;
+      }
+
+      return { ...doctorData, hospitals: hospital } as Doctor & { hospitals: any };
     },
     enabled: !!id,
   });
