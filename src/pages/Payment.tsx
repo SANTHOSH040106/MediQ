@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, Calendar, Clock, User, Building2, DollarSign } from "lucide-react";
+import { CreditCard, Calendar, Clock, User, Building2 } from "lucide-react";
+import { RatingDialog } from "@/components/ratings/RatingDialog";
+import { useCreateReview } from "@/hooks/useReviews";
 
 interface BookingData {
   doctorId: string;
@@ -34,6 +36,33 @@ const Payment = () => {
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [bookingData] = useState<BookingData | null>(location.state?.bookingData || null);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const createReview = useCreateReview();
+
+  const handleRatingSubmit = async (rating: number, review: string) => {
+    if (!bookingData) return;
+    
+    try {
+      await createReview.mutateAsync({
+        doctor_id: bookingData.doctorId,
+        hospital_id: bookingData.hospitalId,
+        rating,
+        review: review || undefined,
+      });
+      setShowRatingDialog(false);
+      navigate("/appointments");
+    } catch (error) {
+      // Error is handled by the mutation
+      console.error("Rating submission error:", error);
+    }
+  };
+
+  const handleRatingDialogClose = (open: boolean) => {
+    if (!open) {
+      setShowRatingDialog(false);
+      navigate("/appointments");
+    }
+  };
 
   useEffect(() => {
     if (!bookingData) {
@@ -122,7 +151,8 @@ const Payment = () => {
               description: "Your appointment has been confirmed",
             });
 
-            navigate("/appointments");
+            // Show rating dialog after successful payment
+            setShowRatingDialog(true);
           } catch (error) {
             console.error('Payment verification error:', error);
             toast({
@@ -262,6 +292,15 @@ const Payment = () => {
             {isProcessing ? "Processing..." : "Pay Now"}
           </Button>
         </div>
+
+        {/* Rating Dialog */}
+        <RatingDialog
+          open={showRatingDialog}
+          onOpenChange={handleRatingDialogClose}
+          doctorName={bookingData.doctorName}
+          onSubmit={handleRatingSubmit}
+          isSubmitting={createReview.isPending}
+        />
       </div>
     </MainLayout>
   );
