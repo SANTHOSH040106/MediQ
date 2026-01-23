@@ -199,15 +199,7 @@ const HospitalDetail = () => {
                   </div>
                 </div>
 
-                {hospital.email && (
-                  <div className="flex items-start gap-3">
-                    <Mail className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="font-medium">Email</p>
-                      <p className="text-sm text-muted-foreground">{hospital.email}</p>
-                    </div>
-                  </div>
-                )}
+{/* Email removed for security - only shown to authenticated users if needed */}
 
                 <div className="flex items-start gap-3">
                   <Clock className="h-5 w-5 text-primary mt-0.5" />

@@ -47,8 +47,9 @@ export const useHospitalById = (id: string | undefined) => {
     queryFn: async () => {
       if (!id) throw new Error("Hospital ID is required");
 
+      // Use public_hospitals view which excludes email for security
       const { data, error } = await supabase
-        .from("hospitals")
+        .from("public_hospitals")
         .select("*")
         .eq("id", id)
         .single();

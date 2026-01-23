@@ -82,6 +82,13 @@ export type Database = {
             referencedRelation: "hospitals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "public_hospitals"
+            referencedColumns: ["id"]
+          },
         ]
       }
       doctors: {
@@ -151,6 +158,13 @@ export type Database = {
             columns: ["hospital_id"]
             isOneToOne: false
             referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctors_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "public_hospitals"
             referencedColumns: ["id"]
           },
         ]
@@ -495,6 +509,13 @@ export type Database = {
             referencedRelation: "hospitals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reviews_ratings_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "public_hospitals"
+            referencedColumns: ["id"]
+          },
         ]
       }
       time_slots: {
@@ -619,7 +640,77 @@ export type Database = {
             referencedRelation: "hospitals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "doctors_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "public_hospitals"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      public_hospitals: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string | null
+          description: string | null
+          facilities: string[] | null
+          id: string | null
+          images: string[] | null
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          phone: string | null
+          pincode: string | null
+          rating: number | null
+          specialties: string[] | null
+          state: string | null
+          status: string | null
+          total_reviews: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          facilities?: string[] | null
+          id?: string | null
+          images?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          phone?: string | null
+          pincode?: string | null
+          rating?: number | null
+          specialties?: string[] | null
+          state?: string | null
+          status?: string | null
+          total_reviews?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          facilities?: string[] | null
+          id?: string | null
+          images?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          phone?: string | null
+          pincode?: string | null
+          rating?: number | null
+          specialties?: string[] | null
+          state?: string | null
+          status?: string | null
+          total_reviews?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       public_reviews: {
         Row: {
@@ -666,6 +757,13 @@ export type Database = {
             columns: ["hospital_id"]
             isOneToOne: false
             referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_ratings_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "public_hospitals"
             referencedColumns: ["id"]
           },
         ]
