@@ -171,30 +171,80 @@ const DoctorDetail = () => {
             {/* Reviews Section */}
             <Card>
               <CardHeader>
-                <CardTitle>Patient Reviews ({reviews.length})</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Patient Reviews</span>
+                  <Badge variant="secondary">{reviews.length} reviews</Badge>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* Average Rating Summary */}
+                {reviews.length > 0 && (
+                  <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-muted/50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-5xl font-bold text-primary">
+                        {(doctor.rating ?? 0).toFixed(1)}
+                      </div>
+                      <RatingStars rating={doctor.rating ?? 0} size="md" />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Based on {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+                      </p>
+                    </div>
+                    <Separator orientation="vertical" className="hidden sm:block h-20" />
+                    <div className="flex-1 space-y-2 w-full">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const count = reviews.filter((r) => r.rating === star).length;
+                        const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                        return (
+                          <div key={star} className="flex items-center gap-2">
+                            <span className="text-sm w-3">{star}</span>
+                            <Star className="h-4 w-4 fill-warning text-warning" />
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-warning rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            <span className="text-sm text-muted-foreground w-8">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reviews List */}
                 {reviews.length === 0 ? (
                   <p className="text-muted-foreground text-center py-4">
-                    No reviews yet
+                    No reviews yet. Be the first to leave a review after your appointment!
                   </p>
                 ) : (
-                  reviews.map((review, index) => (
-                    <div key={review.id}>
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <RatingStars rating={review.rating} size="sm" />
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(review.created_at).toLocaleDateString()}
-                            </span>
+                  <div className="space-y-4">
+                    {reviews.map((review, index) => (
+                      <div key={review.id}>
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Star className="h-5 w-5 fill-primary text-primary" />
                           </div>
-                          <p className="text-sm">{review.review}</p>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <RatingStars rating={review.rating} size="sm" />
+                              <span className="text-sm text-muted-foreground">
+                                {new Date(review.created_at).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            {review.review && (
+                              <p className="text-sm text-foreground">{review.review}</p>
+                            )}
+                          </div>
                         </div>
+                        {index < reviews.length - 1 && <Separator className="my-4" />}
                       </div>
-                      {index < reviews.length - 1 && <Separator className="my-4" />}
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
