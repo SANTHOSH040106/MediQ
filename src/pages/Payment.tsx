@@ -39,21 +39,31 @@ const Payment = () => {
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const createReview = useCreateReview();
 
-  const handleRatingSubmit = async (rating: number, review: string) => {
+  const handleDoctorRatingSubmit = async (rating: number, review: string) => {
     if (!bookingData) return;
     
     try {
-      // Only submit doctor_id for the review (constraint requires either doctor_id OR hospital_id, not both)
       await createReview.mutateAsync({
         doctor_id: bookingData.doctorId,
         rating,
         review: review || undefined,
       });
-      setShowRatingDialog(false);
-      navigate("/appointments");
     } catch (error) {
-      // Error is handled by the mutation
-      console.error("Rating submission error:", error);
+      console.error("Doctor rating submission error:", error);
+    }
+  };
+
+  const handleHospitalRatingSubmit = async (rating: number, review: string) => {
+    if (!bookingData) return;
+    
+    try {
+      await createReview.mutateAsync({
+        hospital_id: bookingData.hospitalId,
+        rating,
+        review: review || undefined,
+      });
+    } catch (error) {
+      console.error("Hospital rating submission error:", error);
     }
   };
 
@@ -298,7 +308,9 @@ const Payment = () => {
           open={showRatingDialog}
           onOpenChange={handleRatingDialogClose}
           doctorName={bookingData.doctorName}
-          onSubmit={handleRatingSubmit}
+          hospitalName={bookingData.hospitalName}
+          onSubmitDoctor={handleDoctorRatingSubmit}
+          onSubmitHospital={handleHospitalRatingSubmit}
           isSubmitting={createReview.isPending}
         />
       </div>

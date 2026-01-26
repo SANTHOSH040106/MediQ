@@ -9,14 +9,18 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star } from "lucide-react";
+import { Star, Building2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type RatingTarget = "doctor" | "hospital";
 
 interface RatingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   doctorName: string;
-  onSubmit: (rating: number, review: string) => Promise<void>;
+  hospitalName: string;
+  onSubmitDoctor: (rating: number, review: string) => Promise<void>;
+  onSubmitHospital: (rating: number, review: string) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -24,37 +28,101 @@ export const RatingDialog = ({
   open,
   onOpenChange,
   doctorName,
-  onSubmit,
+  hospitalName,
+  onSubmitDoctor,
+  onSubmitHospital,
   isSubmitting = false,
 }: RatingDialogProps) => {
-  const [rating, setRating] = useState(0);
+  const [currentTarget, setCurrentTarget] = useState<RatingTarget>("doctor");
+  const [doctorRating, setDoctorRating] = useState(0);
+  const [doctorReview, setDoctorReview] = useState("");
+  const [hospitalRating, setHospitalRating] = useState(0);
+  const [hospitalReview, setHospitalReview] = useState("");
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [review, setReview] = useState("");
+
+  const rating = currentTarget === "doctor" ? doctorRating : hospitalRating;
+  const setRating = currentTarget === "doctor" ? setDoctorRating : setHospitalRating;
+  const review = currentTarget === "doctor" ? doctorReview : hospitalReview;
+  const setReview = currentTarget === "doctor" ? setDoctorReview : setHospitalReview;
+  const targetName = currentTarget === "doctor" ? doctorName : hospitalName;
 
   const handleSubmit = async () => {
     if (rating === 0) return;
-    await onSubmit(rating, review);
-    // Reset state after submission
-    setRating(0);
-    setReview("");
+    
+    if (currentTarget === "doctor") {
+      await onSubmitDoctor(doctorRating, doctorReview);
+      // Move to hospital rating
+      setCurrentTarget("hospital");
+    } else {
+      await onSubmitHospital(hospitalRating, hospitalReview);
+      // Reset and close
+      resetState();
+      onOpenChange(false);
+    }
   };
 
   const handleSkip = () => {
-    onOpenChange(false);
-    setRating(0);
-    setReview("");
+    if (currentTarget === "doctor") {
+      // Skip doctor rating, move to hospital
+      setCurrentTarget("hospital");
+    } else {
+      // Skip hospital rating, close dialog
+      resetState();
+      onOpenChange(false);
+    }
+  };
+
+  const resetState = () => {
+    setCurrentTarget("doctor");
+    setDoctorRating(0);
+    setDoctorReview("");
+    setHospitalRating(0);
+    setHospitalReview("");
+    setHoveredRating(0);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      resetState();
+    }
+    onOpenChange(open);
   };
 
   const displayRating = hoveredRating || rating;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center">Rate Your Experience</DialogTitle>
+          <div className="flex justify-center mb-2">
+            {currentTarget === "doctor" ? (
+              <div className="p-3 rounded-full bg-primary/10">
+                <User className="h-6 w-6 text-primary" />
+              </div>
+            ) : (
+              <div className="p-3 rounded-full bg-primary/10">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+            )}
+          </div>
+          <DialogTitle className="text-center">
+            Rate {currentTarget === "doctor" ? "Doctor" : "Hospital"}
+          </DialogTitle>
           <DialogDescription className="text-center">
-            How was your booking experience with {doctorName}?
+            How was your experience with {targetName}?
           </DialogDescription>
+          
+          {/* Progress indicator */}
+          <div className="flex justify-center gap-2 mt-3">
+            <div className={cn(
+              "h-2 w-8 rounded-full transition-colors",
+              currentTarget === "doctor" ? "bg-primary" : "bg-muted"
+            )} />
+            <div className={cn(
+              "h-2 w-8 rounded-full transition-colors",
+              currentTarget === "hospital" ? "bg-primary" : "bg-muted"
+            )} />
+          </div>
         </DialogHeader>
 
         <div className="py-6">
@@ -100,7 +168,7 @@ export const RatingDialog = ({
             </label>
             <Textarea
               id="review"
-              placeholder="Tell us about your booking experience..."
+              placeholder={`Tell us about your experience with ${currentTarget === "doctor" ? "the doctor" : "the hospital"}...`}
               value={review}
               onChange={(e) => setReview(e.target.value)}
               className="min-h-[100px] resize-none"
@@ -119,14 +187,18 @@ export const RatingDialog = ({
             disabled={isSubmitting}
             className="sm:flex-1"
           >
-            Skip for now
+            Skip
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={rating === 0 || isSubmitting}
             className="sm:flex-1"
           >
-            {isSubmitting ? "Submitting..." : "Submit Rating"}
+            {isSubmitting 
+              ? "Submitting..." 
+              : currentTarget === "doctor" 
+                ? "Next: Rate Hospital" 
+                : "Submit"}
           </Button>
         </DialogFooter>
       </DialogContent>
