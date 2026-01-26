@@ -43,9 +43,9 @@ const Payment = () => {
     if (!bookingData) return;
     
     try {
+      // Only submit doctor_id for the review (constraint requires either doctor_id OR hospital_id, not both)
       await createReview.mutateAsync({
         doctor_id: bookingData.doctorId,
-        hospital_id: bookingData.hospitalId,
         rating,
         review: review || undefined,
       });
