@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { SearchBar } from "@/components/home/SearchBar";
+import { SearchSuggestions } from "@/components/search/SearchSuggestions";
 import { SearchFilters } from "@/components/search/SearchFilters";
 import { HospitalCard } from "@/components/search/HospitalCard";
 import { DoctorCard } from "@/components/search/DoctorCard";
@@ -12,15 +12,35 @@ import { useHospitals } from "@/hooks/useHospitals";
 import { useDoctors } from "@/hooks/useDoctors";
 
 const Search = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const specialtyParam = searchParams.get("specialty");
+  const queryParam = searchParams.get("q");
   
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>(
     specialtyParam ? [specialtyParam] : []
   );
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("rating");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(queryParam || "");
+
+  // Sync search query from URL params
+  useEffect(() => {
+    if (queryParam) {
+      setSearchQuery(queryParam);
+    }
+  }, [queryParam]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setSearchParams((prev) => {
+      if (query) {
+        prev.set("q", query);
+      } else {
+        prev.delete("q");
+      }
+      return prev;
+    });
+  };
 
   const { data: hospitals = [], isLoading: hospitalsLoading } = useHospitals({
     searchText: searchQuery,
@@ -64,7 +84,9 @@ const Search = () => {
           <p className="text-muted-foreground">Find the best healthcare providers near you</p>
         </div>
 
-        <SearchBar />
+        <div className="bg-muted/30 rounded-lg p-4">
+          <SearchSuggestions onSearch={handleSearch} />
+        </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <SearchFilters
