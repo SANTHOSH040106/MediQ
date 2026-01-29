@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MapPin, User, Building2, Loader2, X } from "lucide-react";
+import { Search, MapPin, User, Building2, Loader2, X, Mic, MicOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSearchSuggestions, SearchSuggestion } from "@/hooks/useSearchSuggestions";
+import { useVoiceSearch } from "@/hooks/useVoiceSearch";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface SearchSuggestionsProps {
   className?: string;
@@ -18,6 +20,7 @@ export const SearchSuggestions = ({
   onSearch,
 }: SearchSuggestionsProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -28,6 +31,35 @@ export const SearchSuggestions = ({
     query,
     enabled: isOpen,
   });
+
+  // Voice search integration
+  const { isListening, isSupported, toggleListening, transcript } = useVoiceSearch({
+    onResult: (result) => {
+      setQuery(result);
+      setIsOpen(result.trim().length >= 2);
+      toast({
+        title: "Voice search",
+        description: `Searching for "${result}"`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Voice search error",
+        description: error,
+      });
+    },
+  });
+
+  // Update query with interim transcript while listening
+  useEffect(() => {
+    if (isListening && transcript) {
+      setQuery(transcript);
+      if (transcript.trim().length >= 2) {
+        setIsOpen(true);
+      }
+    }
+  }, [isListening, transcript]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -133,6 +165,24 @@ export const SearchSuggestions = ({
               onClick={handleClear}
             >
               <X className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          )}
+          {isSupported && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-8 w-8 transition-colors",
+                isListening && "bg-destructive/10 text-destructive animate-pulse"
+              )}
+              onClick={toggleListening}
+              title={isListening ? "Stop listening" : "Voice search"}
+            >
+              {isListening ? (
+                <MicOff className="h-5 w-5" />
+              ) : (
+                <Mic className="h-5 w-5 text-primary" />
+              )}
             </Button>
           )}
           <Button
