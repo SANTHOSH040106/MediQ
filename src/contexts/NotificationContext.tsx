@@ -89,7 +89,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         await navigator.serviceWorker.ready;
 
         // Subscribe to push notifications
-        const subscription = await registration.pushManager.subscribe({
+        const subscription = await (registration as any).pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(
             import.meta.env.VITE_VAPID_PUBLIC_KEY || ""
