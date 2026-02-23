@@ -898,6 +898,10 @@ export type Database = {
           patient_name: string
         }[]
       }
+      get_user_has_appointment: {
+        Args: { p_doctor: string; p_user: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
