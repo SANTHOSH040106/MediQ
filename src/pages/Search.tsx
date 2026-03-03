@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { SearchSuggestions } from "@/components/search/SearchSuggestions";
+import { Search as SearchIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { SearchFilters } from "@/components/search/SearchFilters";
 import { HospitalCard } from "@/components/search/HospitalCard";
 import { DoctorCard } from "@/components/search/DoctorCard";
@@ -85,7 +86,16 @@ const Search = () => {
         </div>
 
         <div className="bg-muted/30 rounded-lg p-4">
-          <SearchSuggestions onSearch={handleSearch} />
+          <form onSubmit={(e) => { e.preventDefault(); handleSearch(searchQuery); }} className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search doctors, hospitals, or specialties"
+              className="pl-10 h-12"
+            />
+          </form>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
