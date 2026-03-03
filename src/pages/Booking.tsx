@@ -24,7 +24,7 @@ const Booking = () => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState("");
   const [appointmentType, setAppointmentType] = useState("consultation");
-  const [tokenType, setTokenType] = useState<"normal" | "priority">("normal");
+  const [tokenType, setTokenType] = useState<"normal" | "priority" | "emergency" | "premium">("normal");
   const [specialInstructions, setSpecialInstructions] = useState("");
 
   const { data: doctorData, isLoading: doctorLoading } = useDoctorById(doctorId || undefined);
@@ -59,7 +59,8 @@ const Booking = () => {
       return;
     }
 
-    const priorityFee = tokenType === "priority" ? Math.round(doctor.consultation_fee * 0.5) : 0;
+    const feeMultiplier = tokenType === "emergency" ? 1.0 : tokenType === "premium" ? 0.75 : tokenType === "priority" ? 0.5 : 0;
+    const priorityFee = Math.round(doctor.consultation_fee * feeMultiplier);
     
     navigate("/payment", {
       state: {
@@ -232,27 +233,58 @@ const Booking = () => {
             <CardTitle>Token Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup value={tokenType} onValueChange={(v) => setTokenType(v as "normal" | "priority")}>
-              <div className="flex items-center justify-between p-3 rounded-lg border">
+            <RadioGroup value={tokenType} onValueChange={(v) => setTokenType(v as typeof tokenType)}>
+              {/* Normal */}
+              <div className={`flex items-center justify-between p-3 rounded-lg border ${tokenType === 'normal' ? 'border-primary bg-primary/5' : ''}`}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="normal" id="normal" />
                   <Label htmlFor="normal" className="cursor-pointer">
                     <span className="font-medium">Normal Token</span>
-                    <p className="text-xs text-muted-foreground">Standard queue</p>
+                    <p className="text-xs text-muted-foreground">Standard queue position</p>
                   </Label>
                 </div>
                 <span className="font-semibold">₹{doctor.consultation_fee}</span>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 mt-2">
+
+              {/* Priority */}
+              <div className={`flex items-center justify-between p-3 rounded-lg border mt-2 ${tokenType === 'priority' ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30' : 'border-amber-200 bg-amber-50/50 dark:bg-amber-950/10'}`}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="priority" id="priority" />
                   <Label htmlFor="priority" className="cursor-pointer">
                     <span className="font-medium text-amber-700 dark:text-amber-400">⚡ Priority Token</span>
-                    <p className="text-xs text-muted-foreground">Skip ahead in queue</p>
+                    <p className="text-xs text-muted-foreground">Skip ahead in queue (+50%)</p>
                   </Label>
                 </div>
                 <span className="font-semibold text-amber-700 dark:text-amber-400">
                   ₹{doctor.consultation_fee + Math.round(doctor.consultation_fee * 0.5)}
+                </span>
+              </div>
+
+              {/* Premium */}
+              <div className={`flex items-center justify-between p-3 rounded-lg border mt-2 ${tokenType === 'premium' ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30' : 'border-purple-200 bg-purple-50/50 dark:bg-purple-950/10'}`}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="premium" id="premium" />
+                  <Label htmlFor="premium" className="cursor-pointer">
+                    <span className="font-medium text-purple-700 dark:text-purple-400">👑 Premium Token</span>
+                    <p className="text-xs text-muted-foreground">VIP priority access (+75%)</p>
+                  </Label>
+                </div>
+                <span className="font-semibold text-purple-700 dark:text-purple-400">
+                  ₹{doctor.consultation_fee + Math.round(doctor.consultation_fee * 0.75)}
+                </span>
+              </div>
+
+              {/* Emergency */}
+              <div className={`flex items-center justify-between p-3 rounded-lg border mt-2 ${tokenType === 'emergency' ? 'border-destructive bg-destructive/10' : 'border-destructive/30 bg-destructive/5'}`}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="emergency" id="emergency" />
+                  <Label htmlFor="emergency" className="cursor-pointer">
+                    <span className="font-medium text-destructive">🚨 Emergency Token</span>
+                    <p className="text-xs text-muted-foreground">Highest priority — urgent care (+100%)</p>
+                  </Label>
+                </div>
+                <span className="font-semibold text-destructive">
+                  ₹{doctor.consultation_fee + Math.round(doctor.consultation_fee * 1.0)}
                 </span>
               </div>
             </RadioGroup>
@@ -265,7 +297,12 @@ const Booking = () => {
             <CardTitle>Appointment Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup value={appointmentType} onValueChange={setAppointmentType}>
+            <RadioGroup value={appointmentType} onValueChange={(v) => {
+              setAppointmentType(v);
+              if (v === "emergency" && tokenType === "normal") {
+                setTokenType("emergency");
+              }
+            }}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="consultation" id="consultation" />
                 <Label htmlFor="consultation">New Consultation</Label>
@@ -275,8 +312,8 @@ const Booking = () => {
                 <Label htmlFor="follow-up">Follow-up</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="emergency" id="emergency" />
-                <Label htmlFor="emergency">Emergency</Label>
+                <RadioGroupItem value="emergency" id="emergency-type" />
+                <Label htmlFor="emergency-type">Emergency</Label>
               </div>
             </RadioGroup>
           </CardContent>
