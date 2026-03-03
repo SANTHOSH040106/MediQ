@@ -912,6 +912,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_current_user_doctor_for: {
+        Args: { p_doctor_id: string }
+        Returns: boolean
+      }
       is_doctor_for_appointment: {
         Args: { doctor_id: string }
         Returns: boolean
