@@ -102,7 +102,7 @@ const Emergency = () => {
       latitude: location.lat,
       longitude: location.lng,
       message: message || "Emergency assistance needed",
-      status: "sent",
+      status: "pending",
     });
     if (error) {
       toast({ title: "Error", description: "Failed to send emergency alert.", variant: "destructive" });
