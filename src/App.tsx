@@ -30,6 +30,7 @@ const AppointmentDetail = lazy(() => import("./pages/AppointmentDetail"));
 const Pharmacy = lazy(() => import("./pages/Pharmacy"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const DoctorDashboard = lazy(() => import("./pages/DoctorDashboard"));
+const Emergency = lazy(() => import("./pages/Emergency"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/hospital/:id" element={<HospitalDetail />} />
               <Route path="/doctor/:id" element={<DoctorDetail />} />
               <Route path="/pharmacy" element={<Pharmacy />} />
+              <Route path="/emergency" element={<Emergency />} />
               
               {/* Protected Routes */}
               <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
