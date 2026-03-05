@@ -1,4 +1,4 @@
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu, Siren } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -36,10 +36,17 @@ export const Header = () => {
 
         <div className="flex items-center gap-4">
           {user ? (
-            <>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-accent" />
+             <>
+              <Button variant="ghost" size="icon" className="relative text-destructive hover:text-destructive hover:bg-destructive/10" asChild>
+                <Link to="/emergency">
+                  <Siren className="h-5 w-5" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="icon" className="relative" asChild>
+                <Link to="/notifications">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-accent" />
+                </Link>
               </Button>
               
               <Link to="/profile">
