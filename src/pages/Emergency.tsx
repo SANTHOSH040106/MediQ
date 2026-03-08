@@ -76,12 +76,14 @@ const Emergency = () => {
         setLoadingHospitals(false);
         return;
       }
+      const MAX_DISTANCE_KM = 15;
       const withDistance: NearbyHospital[] = (data || [])
         .filter((h: any) => h.latitude && h.longitude)
         .map((h: any) => ({
           ...h,
           distance: getDistanceKm(location.lat, location.lng, Number(h.latitude), Number(h.longitude)),
         }))
+        .filter((h: NearbyHospital) => h.distance <= MAX_DISTANCE_KM)
         .sort((a: NearbyHospital, b: NearbyHospital) => a.distance - b.distance);
       setHospitals(withDistance);
       setLoadingHospitals(false);
@@ -197,7 +199,7 @@ const Emergency = () => {
 
         {/* Nearby Hospitals */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Nearby Hospitals</h2>
+          <h2 className="text-lg font-semibold mb-3">Hospitals within 15 km</h2>
           {loadingHospitals ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -205,7 +207,7 @@ const Emergency = () => {
           ) : hospitals.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                {location ? "No hospitals with location data found." : "Enable location to find nearby hospitals."}
+                {location ? "No hospitals found within 15 km of your location." : "Enable location to find nearby hospitals."}
               </CardContent>
             </Card>
           ) : (
