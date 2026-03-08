@@ -207,7 +207,7 @@ const Emergency = () => {
           ) : hospitals.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                {location ? "No hospitals with location data found." : "Enable location to find nearby hospitals."}
+                {location ? "No hospitals found within 15 km of your location." : "Enable location to find nearby hospitals."}
               </CardContent>
             </Card>
           ) : (
