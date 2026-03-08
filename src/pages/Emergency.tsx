@@ -76,12 +76,14 @@ const Emergency = () => {
         setLoadingHospitals(false);
         return;
       }
+      const MAX_DISTANCE_KM = 15;
       const withDistance: NearbyHospital[] = (data || [])
         .filter((h: any) => h.latitude && h.longitude)
         .map((h: any) => ({
           ...h,
           distance: getDistanceKm(location.lat, location.lng, Number(h.latitude), Number(h.longitude)),
         }))
+        .filter((h: NearbyHospital) => h.distance <= MAX_DISTANCE_KM)
         .sort((a: NearbyHospital, b: NearbyHospital) => a.distance - b.distance);
       setHospitals(withDistance);
       setLoadingHospitals(false);
