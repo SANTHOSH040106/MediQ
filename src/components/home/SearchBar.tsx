@@ -198,7 +198,19 @@ export const SearchBar = () => {
               <X className="h-4 w-4" />
             </button>
           )}
-          <MapPin className="h-5 w-5 text-primary" />
+          <button
+            type="button"
+            onClick={detectLocation}
+            disabled={locating}
+            className="text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+            title="Detect my location"
+          >
+            {locating ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <MapPin className="h-5 w-5" />
+            )}
+          </button>
         </div>
 
         {showSuggestions && (
