@@ -139,7 +139,7 @@ export const SearchBar = () => {
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search doctors, hospitals, or specialties"
-          className="pl-10 pr-10 h-12"
+          className="pl-10 pr-16 h-12"
           autoComplete="off"
         />
         {query && (
