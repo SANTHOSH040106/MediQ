@@ -115,3 +115,11 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Leaflet marker customization */
+.user-marker-icon {
+  filter: hue-rotate(200deg) saturate(1.5);
+}
+.hospital-marker-icon {
+  filter: hue-rotate(330deg) saturate(1.8);
+}
