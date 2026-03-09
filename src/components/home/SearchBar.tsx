@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, Stethoscope, X, MapPin } from "lucide-react";
+import { Search, Building2, Stethoscope, X, MapPin, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Suggestion {
   id: string;
@@ -17,9 +18,50 @@ export const SearchBar = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [locating, setLocating] = useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const detectLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+          );
+          const data = await res.json();
+          const city =
+            data.address?.city ||
+            data.address?.town ||
+            data.address?.village ||
+            data.address?.county ||
+            "";
+          if (city) {
+            setQuery(city);
+            toast.success(`Location detected: ${city}`);
+          } else {
+            toast.error("Could not determine your city");
+          }
+        } catch {
+          toast.error("Failed to detect location");
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        toast.error("Location access denied");
+        setLocating(false);
+      },
+      { timeout: 10000 }
+    );
+  }, []);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -156,7 +198,19 @@ export const SearchBar = () => {
               <X className="h-4 w-4" />
             </button>
           )}
-          <MapPin className="h-5 w-5 text-primary" />
+          <button
+            type="button"
+            onClick={detectLocation}
+            disabled={locating}
+            className="text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+            title="Detect my location"
+          >
+            {locating ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <MapPin className="h-5 w-5" />
+            )}
+          </button>
         </div>
 
         {showSuggestions && (
