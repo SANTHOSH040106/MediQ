@@ -142,19 +142,22 @@ export const SearchBar = () => {
           className="pl-10 pr-16 h-12"
           autoComplete="off"
         />
-        {query && (
-          <button
-            type="button"
-            onClick={() => {
-              setQuery("");
-              setSuggestions([]);
-              setShowSuggestions(false);
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setSuggestions([]);
+                setShowSuggestions(false);
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          <MapPin className="h-5 w-5 text-primary" />
+        </div>
 
         {showSuggestions && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
