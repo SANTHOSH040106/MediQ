@@ -187,6 +187,16 @@ const Emergency = () => {
           </CardContent>
         </Card>
 
+        {/* Map */}
+        {location && (
+          <EmergencyMap
+            userLocation={location}
+            hospitals={hospitals}
+            selectedHospitalId={selectedHospital}
+            onSelectHospital={setSelectedHospital}
+          />
+        )}
+
         {/* Message */}
         <div>
           <label className="text-sm font-medium mb-2 block">Emergency Details (optional)</label>
