@@ -18,9 +18,50 @@ export const SearchBar = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [locating, setLocating] = useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const detectLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+          );
+          const data = await res.json();
+          const city =
+            data.address?.city ||
+            data.address?.town ||
+            data.address?.village ||
+            data.address?.county ||
+            "";
+          if (city) {
+            setQuery(city);
+            toast.success(`Location detected: ${city}`);
+          } else {
+            toast.error("Could not determine your city");
+          }
+        } catch {
+          toast.error("Failed to detect location");
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        toast.error("Location access denied");
+        setLocating(false);
+      },
+      { timeout: 10000 }
+    );
+  }, []);
 
   // Close suggestions on outside click
   useEffect(() => {
