@@ -233,7 +233,7 @@ const Booking = () => {
             <CardTitle>Token Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup value={tokenType} onValueChange={(v) => setTokenType(v as typeof tokenType)}>
+            <RadioGroup name="token-type" value={tokenType} onValueChange={(v) => setTokenType(v as typeof tokenType)}>
               {/* Normal */}
               <div className={`flex items-center justify-between p-3 rounded-lg border ${tokenType === 'normal' ? 'border-primary bg-primary/5' : ''}`}>
                 <div className="flex items-center space-x-2">
