@@ -297,7 +297,7 @@ const Booking = () => {
             <CardTitle>Appointment Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup value={appointmentType} onValueChange={(v) => {
+            <RadioGroup name="appointment-type" value={appointmentType} onValueChange={(v) => {
               setAppointmentType(v);
               if (v === "emergency" && tokenType === "normal") {
                 setTokenType("emergency");
