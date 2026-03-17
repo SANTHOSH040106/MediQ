@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, Component, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -17,7 +17,6 @@ const userIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  className: "user-marker-icon",
 });
 
 const hospitalIcon = new L.Icon({
@@ -27,7 +26,6 @@ const hospitalIcon = new L.Icon({
   iconSize: [20, 33],
   iconAnchor: [10, 33],
   popupAnchor: [1, -28],
-  className: "hospital-marker-icon",
 });
 
 interface Hospital {
@@ -46,95 +44,88 @@ interface EmergencyMapProps {
   onSelectHospital: (id: string) => void;
 }
 
-// Error boundary specifically for the map
-class MapErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(error: Error) { console.error("Map error:", error); }
-  render() { return this.state.hasError ? this.props.fallback : this.props.children; }
-}
+export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSelectHospital }: EmergencyMapProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const prevSelectedRef = useRef<string | null>(null);
 
-const MapFallback = () => (
-  <div className="rounded-lg overflow-hidden border border-border shadow-sm flex items-center justify-center bg-muted" style={{ height: 280 }}>
-    <p className="text-sm text-muted-foreground">Map could not be loaded</p>
-  </div>
-);
-
-// Lazy-load react-leaflet components to avoid SSR/init issues
-const LazyMapInner = ({ userLocation, hospitals, selectedHospitalId, onSelectHospital }: EmergencyMapProps) => {
-  const [ReactLeaflet, setReactLeaflet] = useState<any>(null);
-  const prevSelectedId = useRef<string | null>(null);
-  const mapRef = useRef<any>(null);
-
+  // Initialize map
   useEffect(() => {
-    import("react-leaflet").then((mod) => setReactLeaflet(mod)).catch(console.error);
-  }, []);
+    if (!containerRef.current || mapRef.current) return;
+
+    const map = L.map(containerRef.current, {
+      center: [userLocation.lat, userLocation.lng],
+      zoom: 12,
+      scrollWheelZoom: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    // User marker
+    L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+      .addTo(map)
+      .bindPopup("<strong>Your Location</strong>");
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markersRef.current.clear();
+    };
+  }, [userLocation.lat, userLocation.lng]);
+
+  // Update hospital markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Clear old hospital markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current.clear();
+
+    hospitals.forEach((h) => {
+      if (!h.latitude || !h.longitude) return;
+      const marker = L.marker([h.latitude, h.longitude], { icon: hospitalIcon })
+        .addTo(map)
+        .bindPopup(
+          `<div style="font-size:13px"><strong>${h.name}</strong><br/>${h.distance.toFixed(1)} km away${
+            h.phone ? `<br/><a href="tel:${h.phone}">${h.phone}</a>` : ""
+          }</div>`
+        )
+        .on("click", () => onSelectHospital(h.id));
+      markersRef.current.set(h.id, marker);
+    });
+  }, [hospitals, onSelectHospital]);
 
   // Fly to selected hospital
   useEffect(() => {
-    if (!mapRef.current || !selectedHospitalId || selectedHospitalId === prevSelectedId.current) return;
-    prevSelectedId.current = selectedHospitalId;
+    const map = mapRef.current;
+    if (!map || !selectedHospitalId || selectedHospitalId === prevSelectedRef.current) return;
+    prevSelectedRef.current = selectedHospitalId;
+
     const hospital = hospitals.find((h) => h.id === selectedHospitalId);
     if (hospital?.latitude && hospital?.longitude) {
       const bounds = L.latLngBounds(
         [userLocation.lat, userLocation.lng],
         [hospital.latitude, hospital.longitude]
       );
-      mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+
+      // Open popup
+      const marker = markersRef.current.get(selectedHospitalId);
+      marker?.openPopup();
     }
   }, [selectedHospitalId, hospitals, userLocation]);
 
-  if (!ReactLeaflet) {
-    return (
-      <div className="rounded-lg overflow-hidden border border-border shadow-sm flex items-center justify-center bg-muted" style={{ height: 280 }}>
-        <p className="text-sm text-muted-foreground">Loading map...</p>
-      </div>
-    );
-  }
-
-  const { MapContainer, TileLayer, Marker, Popup } = ReactLeaflet;
-
   return (
-    <div className="rounded-lg overflow-hidden border border-border shadow-sm" style={{ height: 280 }}>
-      <MapContainer
-        center={[userLocation.lat, userLocation.lng]}
-        zoom={12}
-        scrollWheelZoom={false}
-        style={{ height: "100%", width: "100%" }}
-        ref={mapRef}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
-          <Popup><strong>Your Location</strong></Popup>
-        </Marker>
-        {hospitals.map((h) =>
-          h.latitude && h.longitude ? (
-            <Marker
-              key={h.id}
-              position={[h.latitude, h.longitude]}
-              icon={hospitalIcon}
-              eventHandlers={{ click: () => onSelectHospital(h.id) }}
-            >
-              <Popup>
-                <div className="text-sm">
-                  <strong>{h.name}</strong><br />
-                  {h.distance.toFixed(1)} km away
-                  {h.phone && (<><br /><a href={`tel:${h.phone}`} className="text-primary">{h.phone}</a></>)}
-                </div>
-              </Popup>
-            </Marker>
-          ) : null
-        )}
-      </MapContainer>
-    </div>
+    <div
+      ref={containerRef}
+      className="rounded-lg overflow-hidden border border-border shadow-sm"
+      style={{ height: 280 }}
+    />
   );
 };
-
-export const EmergencyMap = (props: EmergencyMapProps) => (
-  <MapErrorBoundary fallback={<MapFallback />}>
-    <LazyMapInner {...props} />
-  </MapErrorBoundary>
-);
