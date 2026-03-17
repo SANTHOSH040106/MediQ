@@ -1,5 +1,4 @@
-import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useEffect, useRef, useState, Component, ReactNode } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -47,26 +46,53 @@ interface EmergencyMapProps {
   onSelectHospital: (id: string) => void;
 }
 
-function FlyToSelected({ hospital, userLocation }: { hospital: Hospital | undefined; userLocation: { lat: number; lng: number } }) {
-  const map = useMap();
-  const prevId = useRef<string | null>(null);
+// Error boundary specifically for the map
+class MapErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error) { console.error("Map error:", error); }
+  render() { return this.state.hasError ? this.props.fallback : this.props.children; }
+}
+
+const MapFallback = () => (
+  <div className="rounded-lg overflow-hidden border border-border shadow-sm flex items-center justify-center bg-muted" style={{ height: 280 }}>
+    <p className="text-sm text-muted-foreground">Map could not be loaded</p>
+  </div>
+);
+
+// Lazy-load react-leaflet components to avoid SSR/init issues
+const LazyMapInner = ({ userLocation, hospitals, selectedHospitalId, onSelectHospital }: EmergencyMapProps) => {
+  const [ReactLeaflet, setReactLeaflet] = useState<any>(null);
+  const prevSelectedId = useRef<string | null>(null);
+  const mapRef = useRef<any>(null);
 
   useEffect(() => {
-    if (hospital?.latitude && hospital?.longitude && hospital.id !== prevId.current) {
-      prevId.current = hospital.id;
+    import("react-leaflet").then((mod) => setReactLeaflet(mod)).catch(console.error);
+  }, []);
+
+  // Fly to selected hospital
+  useEffect(() => {
+    if (!mapRef.current || !selectedHospitalId || selectedHospitalId === prevSelectedId.current) return;
+    prevSelectedId.current = selectedHospitalId;
+    const hospital = hospitals.find((h) => h.id === selectedHospitalId);
+    if (hospital?.latitude && hospital?.longitude) {
       const bounds = L.latLngBounds(
         [userLocation.lat, userLocation.lng],
         [hospital.latitude, hospital.longitude]
       );
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
     }
-  }, [hospital, map, userLocation]);
+  }, [selectedHospitalId, hospitals, userLocation]);
 
-  return null;
-}
+  if (!ReactLeaflet) {
+    return (
+      <div className="rounded-lg overflow-hidden border border-border shadow-sm flex items-center justify-center bg-muted" style={{ height: 280 }}>
+        <p className="text-sm text-muted-foreground">Loading map...</p>
+      </div>
+    );
+  }
 
-export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSelectHospital }: EmergencyMapProps) => {
-  const selectedHospital = hospitals.find((h) => h.id === selectedHospitalId);
+  const { MapContainer, TileLayer, Marker, Popup } = ReactLeaflet;
 
   return (
     <div className="rounded-lg overflow-hidden border border-border shadow-sm" style={{ height: 280 }}>
@@ -75,20 +101,15 @@ export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSe
         zoom={12}
         scrollWheelZoom={false}
         style={{ height: "100%", width: "100%" }}
+        ref={mapRef}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-
-        {/* User location */}
         <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
-          <Popup>
-            <strong>Your Location</strong>
-          </Popup>
+          <Popup><strong>Your Location</strong></Popup>
         </Marker>
-
-        {/* Hospital markers */}
         {hospitals.map((h) =>
           h.latitude && h.longitude ? (
             <Marker
@@ -99,25 +120,21 @@ export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSe
             >
               <Popup>
                 <div className="text-sm">
-                  <strong>{h.name}</strong>
-                  <br />
+                  <strong>{h.name}</strong><br />
                   {h.distance.toFixed(1)} km away
-                  {h.phone && (
-                    <>
-                      <br />
-                      <a href={`tel:${h.phone}`} className="text-primary">
-                        {h.phone}
-                      </a>
-                    </>
-                  )}
+                  {h.phone && (<><br /><a href={`tel:${h.phone}`} className="text-primary">{h.phone}</a></>)}
                 </div>
               </Popup>
             </Marker>
           ) : null
         )}
-
-        <FlyToSelected hospital={selectedHospital} userLocation={userLocation} />
       </MapContainer>
     </div>
   );
 };
+
+export const EmergencyMap = (props: EmergencyMapProps) => (
+  <MapErrorBoundary fallback={<MapFallback />}>
+    <LazyMapInner {...props} />
+  </MapErrorBoundary>
+);
