@@ -237,6 +237,18 @@ const Emergency = () => {
                   {searchingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 </Button>
               </div>
+              {manualSearchUsed && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setManualSearchUsed(false); getLocation(); }}
+                  disabled={locating}
+                  className="w-full gap-2"
+                >
+                  {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
+                  Use my GPS
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : null}
