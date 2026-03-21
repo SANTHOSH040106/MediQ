@@ -44,6 +44,32 @@ const Emergency = () => {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [alertSent, setAlertSent] = useState(false);
+  const [manualQuery, setManualQuery] = useState("");
+  const [searchingManual, setSearchingManual] = useState(false);
+  const [manualSearchUsed, setManualSearchUsed] = useState(false);
+
+  const searchByPincodeOrCity = async () => {
+    const query = manualQuery.trim();
+    if (!query) return;
+    setSearchingManual(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=in`
+      );
+      const results = await res.json();
+      if (results && results.length > 0) {
+        const { lat, lon } = results[0];
+        setLocation({ lat: parseFloat(lat), lng: parseFloat(lon) });
+        setManualSearchUsed(true);
+        toast({ title: "Location Found", description: `Using location for "${results[0].display_name.split(",")[0]}"` });
+      } else {
+        toast({ title: "Not Found", description: "Could not find that location. Try a different pincode or city name.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to search location. Check your internet connection.", variant: "destructive" });
+    }
+    setSearchingManual(false);
+  };
 
   const getLocation = useCallback(() => {
     if (!navigator.geolocation) {
