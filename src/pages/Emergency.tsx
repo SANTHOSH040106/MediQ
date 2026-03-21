@@ -95,7 +95,6 @@ const Emergency = () => {
   }, [getLocation]);
 
   useEffect(() => {
-    if (!location) return;
     const fetchHospitals = async () => {
       setLoadingHospitals(true);
       const { data, error } = await supabase.rpc("search_hospitals", { limit_count: 50 });
@@ -104,16 +103,16 @@ const Emergency = () => {
         setLoadingHospitals(false);
         return;
       }
-      const MAX_DISTANCE_KM = 15;
-      const withDistance: NearbyHospital[] = (data || [])
-        .filter((h: any) => h.latitude && h.longitude)
-        .map((h: any) => ({
-          ...h,
-          distance: getDistanceKm(location.lat, location.lng, Number(h.latitude), Number(h.longitude)),
-        }))
-        .filter((h: NearbyHospital) => h.distance <= MAX_DISTANCE_KM)
-        .sort((a: NearbyHospital, b: NearbyHospital) => a.distance - b.distance);
-      setHospitals(withDistance);
+      const allHospitals: NearbyHospital[] = (data || []).map((h: any) => ({
+        ...h,
+        distance: location && h.latitude && h.longitude
+          ? getDistanceKm(location.lat, location.lng, Number(h.latitude), Number(h.longitude))
+          : 0,
+      }));
+      if (location) {
+        allHospitals.sort((a, b) => a.distance - b.distance);
+      }
+      setHospitals(allHospitals);
       setLoadingHospitals(false);
     };
     fetchHospitals();
@@ -276,7 +275,9 @@ const Emergency = () => {
 
         {/* Nearby Hospitals */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Hospitals within 15 km</h2>
+          <h2 className="text-lg font-semibold mb-3">
+            {location ? "Nearby Hospitals & Medicals" : "All Hospitals & Medicals"}
+          </h2>
           {loadingHospitals ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -284,7 +285,7 @@ const Emergency = () => {
           ) : hospitals.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                {location ? "No hospitals found within 15 km of your location." : "Enable location to find nearby hospitals."}
+                No hospitals found. Please try again later.
               </CardContent>
             </Card>
           ) : (
@@ -317,9 +318,11 @@ const Emergency = () => {
                           </a>
                         )}
                       </div>
-                      <Badge variant="secondary" className="shrink-0 ml-3">
-                        {hospital.distance.toFixed(1)} km
-                      </Badge>
+                      {location && hospital.distance > 0 && (
+                        <Badge variant="secondary" className="shrink-0 ml-3">
+                          {hospital.distance.toFixed(1)} km
+                        </Badge>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
