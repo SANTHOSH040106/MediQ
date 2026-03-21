@@ -318,9 +318,11 @@ const Emergency = () => {
                           </a>
                         )}
                       </div>
-                      <Badge variant="secondary" className="shrink-0 ml-3">
-                        {hospital.distance.toFixed(1)} km
-                      </Badge>
+                      {location && hospital.distance > 0 && (
+                        <Badge variant="secondary" className="shrink-0 ml-3">
+                          {hospital.distance.toFixed(1)} km
+                        </Badge>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
