@@ -95,7 +95,6 @@ const Emergency = () => {
   }, [getLocation]);
 
   useEffect(() => {
-    if (!location) return;
     const fetchHospitals = async () => {
       setLoadingHospitals(true);
       const { data, error } = await supabase.rpc("search_hospitals", { limit_count: 50 });
@@ -104,16 +103,16 @@ const Emergency = () => {
         setLoadingHospitals(false);
         return;
       }
-      const MAX_DISTANCE_KM = 15;
-      const withDistance: NearbyHospital[] = (data || [])
-        .filter((h: any) => h.latitude && h.longitude)
-        .map((h: any) => ({
-          ...h,
-          distance: getDistanceKm(location.lat, location.lng, Number(h.latitude), Number(h.longitude)),
-        }))
-        .filter((h: NearbyHospital) => h.distance <= MAX_DISTANCE_KM)
-        .sort((a: NearbyHospital, b: NearbyHospital) => a.distance - b.distance);
-      setHospitals(withDistance);
+      const allHospitals: NearbyHospital[] = (data || []).map((h: any) => ({
+        ...h,
+        distance: location && h.latitude && h.longitude
+          ? getDistanceKm(location.lat, location.lng, Number(h.latitude), Number(h.longitude))
+          : 0,
+      }));
+      if (location) {
+        allHospitals.sort((a, b) => a.distance - b.distance);
+      }
+      setHospitals(allHospitals);
       setLoadingHospitals(false);
     };
     fetchHospitals();
