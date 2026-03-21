@@ -252,45 +252,24 @@ const Emergency = () => {
           </Card>
         ) : null}
 
-        {/* Map */}
-        {location && (
-          <EmergencyMap
-            userLocation={location}
-            hospitals={hospitals}
-            selectedHospitalId={selectedHospital}
-            onSelectHospital={setSelectedHospital}
-          />
-        )}
-
-        {/* Message */}
-        <div>
-          <label className="text-sm font-medium mb-2 block">Emergency Details (optional)</label>
-          <Textarea
-            placeholder="Describe your emergency situation..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={2}
-          />
-        </div>
-
-        {/* Nearby Hospitals */}
+        {/* Nearby Hospitals & Medicals - shown first for visibility */}
         <div>
           <h2 className="text-lg font-semibold mb-3">
             {location ? "Nearby Hospitals & Medicals" : "All Hospitals & Medicals"}
           </h2>
           {loadingHospitals ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : hospitals.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
+              <CardContent className="py-6 text-center text-muted-foreground">
                 No hospitals found. Please try again later.
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-3">
-              {hospitals.slice(0, 10).map((hospital) => (
+              {hospitals.map((hospital) => (
                 <Card
                   key={hospital.id}
                   className={`cursor-pointer transition-all ${
@@ -330,6 +309,27 @@ const Emergency = () => {
             </div>
           )}
         </div>
+
+        {/* Message */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">Emergency Details (optional)</label>
+          <Textarea
+            placeholder="Describe your emergency situation..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={2}
+          />
+        </div>
+
+        {/* Map */}
+        {location && (
+          <EmergencyMap
+            userLocation={location}
+            hospitals={hospitals}
+            selectedHospitalId={selectedHospital}
+            onSelectHospital={setSelectedHospital}
+          />
+        )}
 
         {/* Send Alert Button */}
         <div className="sticky bottom-20 z-10">
