@@ -275,7 +275,9 @@ const Emergency = () => {
 
         {/* Nearby Hospitals */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Hospitals within 15 km</h2>
+          <h2 className="text-lg font-semibold mb-3">
+            {location ? "Nearby Hospitals & Medicals" : "All Hospitals & Medicals"}
+          </h2>
           {loadingHospitals ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -283,7 +285,7 @@ const Emergency = () => {
           ) : hospitals.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                {location ? "No hospitals found within 15 km of your location." : "Enable location to find nearby hospitals."}
+                No hospitals found. Please try again later.
               </CardContent>
             </Card>
           ) : (
