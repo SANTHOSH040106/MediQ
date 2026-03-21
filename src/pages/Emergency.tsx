@@ -214,6 +214,33 @@ const Emergency = () => {
           </CardContent>
         </Card>
 
+        {/* Manual Location Search */}
+        {!location || manualSearchUsed ? (
+          <Card>
+            <CardContent className="pt-4 pb-4 space-y-3">
+              <p className="text-sm font-medium">
+                {!location ? "Or enter your pincode/city to find hospitals:" : "Search a different location:"}
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter pincode or city name..."
+                  value={manualQuery}
+                  onChange={(e) => setManualQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchByPincodeOrCity()}
+                />
+                <Button
+                  size="sm"
+                  onClick={searchByPincodeOrCity}
+                  disabled={searchingManual || !manualQuery.trim()}
+                  className="shrink-0"
+                >
+                  {searchingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
         {/* Map */}
         {location && (
           <EmergencyMap
