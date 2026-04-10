@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,40 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
+// Geocode a hospital address+city to lat/lng using Nominatim
+async function geocodeHospital(name: string, address: string, city: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const query = `${name}, ${address}, ${city}, India`;
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=in`
+    );
+    const results = await res.json();
+    if (results && results.length > 0) {
+      return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+    }
+    // Fallback: try just city
+    const res2 = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ", India")}&format=json&limit=1&countrycodes=in`
+    );
+    const results2 = await res2.json();
+    if (results2 && results2.length > 0) {
+      return { lat: parseFloat(results2[0].lat), lng: parseFloat(results2[0].lon) };
+    }
+  } catch {
+    // ignore geocoding errors
+  }
+  return null;
+}
+
+// Fallback hospitals for offline / empty database
+const FALLBACK_HOSPITALS: NearbyHospital[] = [
+  { id: "fallback-1", name: "Government General Hospital", address: "Park Town", city: "Chennai", phone: "044-25305000", distance: 0, latitude: 13.0827, longitude: 80.2707 },
+  { id: "fallback-2", name: "AIIMS Delhi", address: "Ansari Nagar", city: "New Delhi", phone: "011-26588500", distance: 0, latitude: 28.5672, longitude: 77.2100 },
+  { id: "fallback-3", name: "KEM Hospital", address: "Parel", city: "Mumbai", phone: "022-24136051", distance: 0, latitude: 19.0020, longitude: 72.8410 },
+  { id: "fallback-4", name: "Victoria Hospital", address: "Fort", city: "Bangalore", phone: "080-26701150", distance: 0, latitude: 12.9575, longitude: 77.5738 },
+  { id: "fallback-5", name: "Coimbatore Medical College Hospital", address: "Avanashi Road", city: "Coimbatore", phone: "0422-2301393", distance: 0, latitude: 11.0168, longitude: 76.9558 },
+];
 
 const Emergency = () => {
   const { user } = useAuth();
@@ -83,7 +117,7 @@ const Emergency = () => {
         setLocating(false);
       },
       () => {
-        toast({ title: "Location Error", description: "Unable to get your location. Please enable GPS.", variant: "destructive" });
+        toast({ title: "Location Error", description: "Unable to get your location. Please enable GPS or search by pincode.", variant: "destructive" });
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -94,24 +128,57 @@ const Emergency = () => {
     getLocation();
   }, [getLocation]);
 
+  // Fetch hospitals from DB + geocode missing coordinates + fallback
   useEffect(() => {
     const fetchHospitals = async () => {
       setLoadingHospitals(true);
-      const { data, error } = await supabase.rpc("search_hospitals", { limit_count: 50 });
-      if (error) {
-        toast({ title: "Error", description: "Failed to load hospitals.", variant: "destructive" });
-        setLoadingHospitals(false);
-        return;
+      const { data, error } = await supabase.rpc("search_hospitals", { limit_count: 100 });
+
+      let allHospitals: NearbyHospital[] = [];
+
+      if (!error && data && data.length > 0) {
+        // Map DB hospitals and geocode those missing coordinates
+        const mapped: NearbyHospital[] = (data || []).map((h: any) => ({
+          id: h.id,
+          name: h.name,
+          address: h.address || "",
+          city: h.city || "",
+          phone: h.phone || "",
+          latitude: h.latitude ? Number(h.latitude) : null,
+          longitude: h.longitude ? Number(h.longitude) : null,
+          distance: 0,
+        }));
+
+        // Geocode hospitals missing coordinates (batch with delay to respect Nominatim rate limits)
+        const needsGeocode = mapped.filter((h) => !h.latitude || !h.longitude);
+        for (let i = 0; i < needsGeocode.length; i++) {
+          const h = needsGeocode[i];
+          if (i > 0) await new Promise((r) => setTimeout(r, 1100)); // Nominatim: 1 req/sec
+          const coords = await geocodeHospital(h.name, h.address, h.city);
+          if (coords) {
+            h.latitude = coords.lat;
+            h.longitude = coords.lng;
+          }
+        }
+
+        allHospitals = mapped;
+      } else {
+        // Use fallback hospitals when DB is empty or errored
+        allHospitals = [...FALLBACK_HOSPITALS];
       }
-      const allHospitals: NearbyHospital[] = (data || []).map((h: any) => ({
-        ...h,
-        distance: location && h.latitude && h.longitude
-          ? getDistanceKm(location.lat, location.lng, Number(h.latitude), Number(h.longitude))
-          : 0,
-      }));
+
+      // Calculate distances if user location is available
       if (location) {
+        allHospitals = allHospitals.map((h) => ({
+          ...h,
+          distance:
+            h.latitude && h.longitude
+              ? getDistanceKm(location.lat, location.lng, h.latitude, h.longitude)
+              : 9999,
+        }));
         allHospitals.sort((a, b) => a.distance - b.distance);
       }
+
       setHospitals(allHospitals);
       setLoadingHospitals(false);
     };
@@ -169,6 +236,8 @@ const Emergency = () => {
     );
   }
 
+  const hospitalsWithCoords = hospitals.filter((h) => h.latitude && h.longitude);
+
   return (
     <MainLayout>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -214,11 +283,11 @@ const Emergency = () => {
         </Card>
 
         {/* Manual Location Search */}
-        {!location || manualSearchUsed ? (
+        {(!location || manualSearchUsed) && (
           <Card>
             <CardContent className="pt-4 pb-4 space-y-3">
               <p className="text-sm font-medium">
-                {!location ? "Or enter your pincode/city to find hospitals:" : "Search a different location:"}
+                {!location ? "Enter your pincode/city to find hospitals:" : "Search a different location:"}
               </p>
               <div className="flex gap-2">
                 <Input
@@ -250,12 +319,12 @@ const Emergency = () => {
               )}
             </CardContent>
           </Card>
-        ) : null}
+        )}
 
-        {/* Map */}
-        {location && (
+        {/* Map - show if location exists OR if we have geocoded hospitals */}
+        {(location || hospitalsWithCoords.length > 0) && (
           <EmergencyMap
-            userLocation={location}
+            userLocation={location || { lat: hospitalsWithCoords[0]?.latitude || 20.5937, lng: hospitalsWithCoords[0]?.longitude || 78.9629 }}
             hospitals={hospitals}
             selectedHospitalId={selectedHospital}
             onSelectHospital={setSelectedHospital}
@@ -277,10 +346,12 @@ const Emergency = () => {
         <div>
           <h2 className="text-lg font-semibold mb-3">
             {location ? "Nearby Hospitals & Medicals" : "All Hospitals & Medicals"}
+            <span className="text-sm font-normal text-muted-foreground ml-2">({hospitals.length})</span>
           </h2>
           {loadingHospitals ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Loading hospitals & resolving locations...</span>
             </div>
           ) : hospitals.length === 0 ? (
             <Card>
@@ -290,7 +361,7 @@ const Emergency = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {hospitals.slice(0, 10).map((hospital) => (
+              {hospitals.map((hospital) => (
                 <Card
                   key={hospital.id}
                   className={`cursor-pointer transition-all ${
@@ -317,8 +388,11 @@ const Emergency = () => {
                             <Phone className="h-3 w-3" /> {hospital.phone}
                           </a>
                         )}
+                        {!hospital.latitude && (
+                          <span className="text-xs text-muted-foreground mt-1 inline-block">📍 Location not on map</span>
+                        )}
                       </div>
-                      {location && hospital.distance > 0 && (
+                      {location && hospital.distance > 0 && hospital.distance < 9999 && (
                         <Badge variant="secondary" className="shrink-0 ml-3">
                           {hospital.distance.toFixed(1)} km
                         </Badge>

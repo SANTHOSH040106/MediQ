@@ -17,11 +17,12 @@ const userIcon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
+  className: "user-marker",
 });
 
 const hospitalIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  iconRetinaUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   iconSize: [20, 33],
   iconAnchor: [10, 33],
@@ -48,9 +49,10 @@ export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSe
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const userMarkerRef = useRef<L.Marker | null>(null);
   const prevSelectedRef = useRef<string | null>(null);
 
-  // Initialize map
+  // Initialize map once
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -65,9 +67,9 @@ export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSe
     }).addTo(map);
 
     // User marker
-    L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+    userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
       .addTo(map)
-      .bindPopup("<strong>Your Location</strong>");
+      .bindPopup("<strong>📍 Your Location</strong>");
 
     mapRef.current = map;
 
@@ -75,10 +77,21 @@ export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSe
       map.remove();
       mapRef.current = null;
       markersRef.current.clear();
+      userMarkerRef.current = null;
     };
+  }, []);
+
+  // Update user marker position
+  useEffect(() => {
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+    }
+    if (mapRef.current && !hospitals.some((h) => h.latitude && h.longitude)) {
+      mapRef.current.setView([userLocation.lat, userLocation.lng], 12);
+    }
   }, [userLocation.lat, userLocation.lng]);
 
-  // Update hospital markers
+  // Update hospital markers and auto-fit bounds
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -87,19 +100,27 @@ export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSe
     markersRef.current.forEach((m) => m.remove());
     markersRef.current.clear();
 
+    const bounds = L.latLngBounds([[userLocation.lat, userLocation.lng]]);
+
     hospitals.forEach((h) => {
       if (!h.latitude || !h.longitude) return;
       const marker = L.marker([h.latitude, h.longitude], { icon: hospitalIcon })
         .addTo(map)
         .bindPopup(
-          `<div style="font-size:13px"><strong>${h.name}</strong><br/>${h.distance.toFixed(1)} km away${
+          `<div style="font-size:13px"><strong>🏥 ${h.name}</strong><br/>${h.distance > 0 && h.distance < 9999 ? h.distance.toFixed(1) + " km away" : ""}${
             h.phone ? `<br/><a href="tel:${h.phone}">${h.phone}</a>` : ""
           }</div>`
         )
         .on("click", () => onSelectHospital(h.id));
       markersRef.current.set(h.id, marker);
+      bounds.extend([h.latitude, h.longitude]);
     });
-  }, [hospitals, onSelectHospital]);
+
+    // Auto-fit to show all markers
+    if (markersRef.current.size > 0) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+    }
+  }, [hospitals, onSelectHospital, userLocation]);
 
   // Fly to selected hospital
   useEffect(() => {
@@ -115,7 +136,6 @@ export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSe
       );
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
 
-      // Open popup
       const marker = markersRef.current.get(selectedHospitalId);
       marker?.openPopup();
     }
@@ -125,7 +145,7 @@ export const EmergencyMap = ({ userLocation, hospitals, selectedHospitalId, onSe
     <div
       ref={containerRef}
       className="rounded-lg overflow-hidden border border-border shadow-sm"
-      style={{ height: 280 }}
+      style={{ height: 300 }}
     />
   );
 };
